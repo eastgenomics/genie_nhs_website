@@ -1,0 +1,179 @@
+{% extends "main/base.html" %}
+
+{% block content %}
+<div>
+    <div class="container-fluid px-5">
+        <div class="row my-3 pb-2 bg-white shadow">
+            <!-- Displayed before variant table data is loaded
+                or when no data is found (text is updated via a javascript). -->
+            <p id="div-table-variants-no-data-message" class="pt-3 lead text-muted text-center">
+                Looking for variant data...
+            </p>
+            <!-- Table <div> is hidden until it is fully loaded
+                to display the custom loading message. -->
+            <div id="div-table-variants" class="table-variants" hidden="hidden">
+                <div class="row pt-1 align-items-center">
+                    <div class="col col-auto">
+                        <input class="w-auto form-control my-2 search-box" type="text" id="customSearch" placeholder="Search variant table">
+                    </div>
+                    <div class="col col-auto">
+                        <div class="vr mt-1" style="height: 34px;"></div>
+                    </div>
+                    <div class="col col-auto">
+                        <h6 class="px-0 m-0"><b>{{ search_value }}</b></h6>
+                    </div>
+                    <div class="col col-auto">
+                        <div class="vr mt-1" style="height: 34px;"></div>
+                    </div>
+                    <div class="col col-auto">
+                        <!-- var-count-text <span> is updated via a javascript 
+                            to display number of variants (rows) in the table
+                            after appyling all filters. -->
+                        <h6 class="px-0 m-0"><b>Variants:</b> <span id="var-count-text"></span></h6>
+                    </div>
+                </div>
+                <div class="row">
+                    <!-- Table options are described in the following doc:
+                        https://bootstrap-table.com/docs/api/table-options/
+                        The number of rows per page (18) was selected to 
+                        display the table without the vertical scrolling bar
+                        on 1920x1080 monitors when all rows height is one line. -->
+                    <table id="table-variants"
+                        data-toggle="table"
+                        data-detail-view="true"
+                        data-detail-formatter="detailFormatter"
+                        data-sortable="true"
+                        data-sort-name="pos"
+                        data-search="true"
+                        data-search-align="left"
+                        data-search-selector="#customSearch"
+                        data-ajax="ajaxRequest"
+                        data-page-size="18"
+                        data-pagination="true"
+                        data-pagination-parts="['pageList']">
+                        <thead>
+                            <!-- Table column width configuration have the following quirks:
+                                
+                                If column "data-width" is not specified then it is automatically
+                                adjusted to fit the overall table width taking into account
+                                the width required to display other no-"data-width" columns
+                                content without breaking it into multiple rows if possible.
+
+                                If column "data-width" is less than required to display its
+                                longest non-breakable word (string with no spaces), than it is
+                                automatically increased to fit it.
+
+                                To break a long word without spaces, a style with a fixed
+                                "max-width" and "word-wrap: break-word" must be used.
+
+                                if all columns have "data-width" specified but its total width
+                                does not match the overall table width then "data-width"
+                                properties are ignored.
+
+                                Variant HGVS description in rare cases can be extremly long and
+                                it does not contain spaces. To avoid horizontal table scrolling, 
+                                "col-max-width-500" style is used to break it into multiple lines 
+                                if needed. However, for the reasons described above, it will work
+                                only when at least one other column does not have fixed "data-width".
+                            -->
+                            <tr class="primary">
+                                <th data-field="chrom" data-sortable="true" data-width="20" data-halign="center" data-align="center" data-valign="middle">Chrom</th>
+                                <th data-field="pos" data-sortable="true" data-width="20" data-halign="center" data-valign="middle">Position</th>
+                                <th data-field="consequence" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Consequence</th>
+                                <th data-field="hgvs_c" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSc</th>
+                                <th data-field="hgvs_p" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSp</th>
+                                <th data-field="refseq_transcript" data-sortable="true" data-halign="center" data-valign="middle">Refseq<br>transcript</th>
+                                <th data-field="gene" data-sortable="true" data-halign="center" data-valign="middle">Gene</th>
+                                <th data-field="haemonc_cancers_count" data-sortable="true" data-width="27" data-halign="center" data-align="right" data-valign="middle">HaemOnc<br>patient count</th>
+                                <th data-field="all_cancers_count" data-sortable="true" data-width="20" data-halign="center" data-align="right" data-valign="middle">All patient<br>count</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var $table = $('#table-variants');
+
+    // Update table variants (rows) count on the UI.
+    function updateVariantCount() {
+        $('#var-count-text').text($table.bootstrapTable('getOptions').totalRows.toLocaleString());
+    }
+
+    // Update table variants (rows) count after each table search.
+    $table.on('search.bs.table', function (e, text) {
+        updateVariantCount();
+    });
+
+    /**
+     * Populates variant table with data. Official bootstrap-table doc:
+     * https://bootstrap-table.com/docs/api/table-options/#ajax
+     *  
+     * @param {Object} - An object with additional bootsrap-table ajax 
+     *                   request params (e.g. sort order).
+     * @returns {void}
+     */
+    function ajaxRequest(params) {
+        // Ajax url and search value are obtained from the backend.
+        let url = '{{ variant_data_url|safe }}';
+        let search_value = '{{ search_value }}';
+
+        // Add any additional bootstrap-table parameters to the ajax
+        // request and load variant table data.
+        $.get(url + '&' + $.param(params.data)).then(function (res) {
+            params.success(res);
+            // If no variants were found for the provided search params then
+            // update then update the "Looking for variant data..." message.
+            if (res.total === 0) {
+                $('#div-table-variants-no-data-message').text(`No variants were found for "${search_value}"`);
+            } else {
+                // Otherwise, hide the message, show the table, 
+                // and update the displayed variants count.
+                document.getElementById('div-table-variants').removeAttribute("hidden");
+                document.getElementById('div-table-variants-no-data-message').setAttribute("hidden", "hidden");
+                updateVariantCount();
+            }
+        })
+    }
+
+    /**
+     * Generates variant table row's detail view content - a sub-table with 
+     * HaemOnc cancer types patient counts. Official bootstrap-table doc:
+     * https://bootstrap-table.com/docs/api/table-options/#detailformatter
+     * 
+     * @param {number} - Row index
+     * @param {Object} - Row data
+     * @returns {string} - Row's detail view html
+     */
+    function detailFormatter(index, row) {
+        // If a variant does not have any HaemOnc patients then return
+        // an appropriate message
+        if (Object.keys(row.haemonc_pcs).length === 0) {
+            return 'No HaemOnc patients.'
+        }
+
+        // Otherwise, generate and return the sub-table with HaemOnc 
+        // cancer types patient counts.
+        var html = `
+            <table class="table table-sm w-auto">
+                <tr class="secondary">
+                    <th class="secondary" scope="col">HaemOnc cancer type</th>
+                    <th class="secondary" scope="col">Patient count</th>
+                </tr>
+        `
+        for (const [key, value] of Object.entries(row.haemonc_pcs)) {
+            html += `
+                <tr>
+                    <td>${key}</td>
+                    <td style="text-align:right">${value}</td>
+                </tr>
+            `
+        }
+
+        html += '</table>'
+        return html
+    }
+</script>
+{% endblock %}

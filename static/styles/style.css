@@ -1,0 +1,132 @@
+:root {
+    --nhs-black: #231f20;
+    --nhs-dark-blue: #003087;
+    --nhs-blue: #005EB8;
+    --nhs-bright-blue: #0072CE;
+    --nhs-light-blue: #41B6E6;
+    --nhs-aqua-blue: #00A9CE;
+    --nhs-dark-grey: #425563;
+    --nhs-mid-grey: #768692;
+    --nhs-pale-grey: #E8EDEE;
+    --nhs-dark-green: #006747;
+    --nhs-green: #009639;
+    --nhs-light-green: #78BE20;
+    --nhs-aqua-green: #00A499;
+    --nhs-purple: #330072;
+    --nhs-dark-pink: #7C2855;
+    --nhs-pink: #AE2573;
+    --nhs-dark-red: #8A1538;
+    --nhs-emergency-services-red: #DA291C;
+    --nhs-orange: #ED8B00;
+    --nhs-warm-yellow: #FFB81C;
+    --nhs-yellow: #FAE100;
+    --nhs-white: #FFFFFF;
+}
+
+body {
+    background-color: var(--nhs-pale-grey);
+}
+
+.primary-link {
+  color: var(--nhs-bright-blue);
+  text-decoration: none;
+}
+
+.primary-link:hover {
+  text-decoration: underline;
+}
+
+.bg-white {
+    background-color: var(--nhs-white)!important;
+}
+
+.search-box {
+    font-size: 14px;
+}
+
+/* Nav bar */
+.navbar-bg-nhs {
+    background-color: var(--nhs-blue);
+}
+
+.nav-block {
+    min-width: 250px;
+}
+
+.navbar-brand {
+    padding-left: 12px;
+    font-size: 26px;
+    font-family: Arial;
+}
+
+.navbar-brand:hover {
+    text-decoration: none;
+}
+
+
+/* Tables */
+
+/* Overwrite of the bootstrap-table classes*/
+.bootstrap-table .fixed-table-container .table thead th .th-inner {
+    padding-left:.25rem;
+    padding-right:.25rem;
+    padding-top:.5rem;
+    padding-bottom:.5rem;
+}
+
+.bootstrap-table .fixed-table-container .table thead th .sortable {
+    padding-right: 15px!important; 
+}
+
+.bootstrap-table .fixed-table-container .table thead th .sortable.sortable-center {
+    padding-left: 5px!important;
+    padding-right: 15px!important;
+}
+
+.bootstrap-table .table>:not(:first-child) {
+    /* Removes default black border under the header */
+    border-top: 0px!important;
+}
+
+.bootstrap-table .page-item.active .page-link {
+    background-color: var(--nhs-bright-blue)!important;
+    border-color: var(--nhs-bright-blue)!important;
+}
+
+
+/* Custom table classes */
+.table-variants {
+    font-size: 12px !important;
+    font-family: Verdana, sans-serif;
+}
+
+.table tbody tr:hover th {
+    background-color: inherit !important;
+}
+
+.table-hover>tbody>tr.detail-view:hover {
+    background-color: inherit;
+    --bs-table-hover-bg: rgba(0, 0, 0, 0.0);
+}
+
+tr.primary {
+    background-color: var(--nhs-bright-blue);
+    color: white;
+}
+
+tr.secondary,
+tr.secondary:hover,
+th.secondary {
+    background-color: var(--nhs-dark-grey) !important;
+    color: white;
+    text-align: center;
+    border: 1px solid white;
+    border-collapse: collapse;
+    padding-right: 10px;
+    padding-left: 10px;
+}
+
+.col-max-width-500 {
+    max-width: 500px;
+    word-wrap: break-word;
+}

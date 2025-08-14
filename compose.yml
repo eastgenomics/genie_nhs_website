@@ -1,0 +1,25 @@
+services:
+  web:
+    build: .
+    container_name: nhs-genie
+    expose:
+      - 8000
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: 0
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+    volumes:
+      - ${DATA_FOLDER}:${DATA_FOLDER}
+    env_file:
+      - .env
+    command: sh -c "python manage.py migrate &&
+      python db_importer.py &&
+      gunicorn --bind 0.0.0.0:8000 --workers 3 nhs_genie_project.wsgi:application"
+  nginx:
+    build: ./nginx
+    ports:
+      - "${PORT}:80"
+    volumes:
+      - ./static:/app/static:ro 
+    depends_on:
+      - web
