@@ -28,7 +28,7 @@
                     <div class="col col-auto">
                         <!-- var-count-text <span> is updated via a javascript 
                             to display number of variants (rows) in the table
-                            after appyling all filters. -->
+                            after applying all filters. -->
                         <h6 class="px-0 m-0"><b>Variants:</b> <span id="var-count-text"></span></h6>
                     </div>
                 </div>
@@ -124,10 +124,13 @@
         // request and load variant table data.
         $.get(url + '&' + $.param(params.data)).then(function (res) {
             params.success(res);
-            // If no variants were found for the provided search params then
-            // update then update the "Looking for variant data..." message.
+            // If no variants were found for the provided search params,
+            // update the "Looking for variant data..." message.
             if (res.total === 0) {
                 $('#div-table-variants-no-data-message').text(`No variants were found for "${search_value}"`);
+                if (res.error !== '') {
+                    console.log(`Failed to process the variant query: "${res.error}"`)
+                }
             } else {
                 // Otherwise, hide the message, show the table, 
                 // and update the displayed variants count.

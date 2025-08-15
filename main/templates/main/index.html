@@ -3,16 +3,16 @@
 {% block content %}
 
 <div class="container-fluid px-5">
-    <div class="row mt-5 mx-auto bg-white shadow" style="width: 800px;">
+    <div class="row mt-5 mx-auto bg-white shadow card-800">
         <h1 class="fw-light text-center pt-5">Welcome to NHS Genie</h1>
         <p class="lead text-muted text-center pt-2">
             Please search by gene symbol or chromosomal position/region (hg38).
         </p>
-        <h6 style="margin-left: 30px"><b>Examples</b></h6>
-        <ul style="margin-left: 50px">
-            <li>Gene: <a class="primary-link" href="{% url 'main:variants' %}?search_key=gene&search_value=NF1">NF1</a></li>
-            <li>Chromosomal position: <a class="primary-link" href="{% url 'main:variants' %}?search_key=region&search_value=7:140753336">7:140753336</a></li>
-            <li>Chromosomal region: <a class="primary-link" href="{% url 'main:variants' %}?search_key=region&search_value=17:31226000-31227000">17:31226000-31227000</a></li>          
+        <h6 class="ml-30"><b>Examples</b></h6>
+        <ul class="ml-50">
+            <li>Gene: <a class="primary-link" href="{% url 'main:search' %}?search_value=NF1">NF1</a></li>
+            <li>Chromosomal position: <a class="primary-link" href="{% url 'main:search' %}?search_value=7:140753336">7:140753336</a></li>
+            <li>Chromosomal region: <a class="primary-link" href="{% url 'main:search' %}?search_value=17:31226000-31227000">17:31226000-31227000</a></li>          
         </ul>
     </div>
 </div>

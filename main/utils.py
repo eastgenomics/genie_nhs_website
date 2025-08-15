@@ -1,3 +1,6 @@
+import sys
+
+
 CHROMOSOMES = ['%s' % x for x in range(1, 23)]
 CHROMOSOMES.extend(['X', 'Y', 'MT'])
 
@@ -63,23 +66,27 @@ VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT = dict(enumerate(list(VEP_CSQ_TERMS)))
 
 def get_worst_csq_display_term(csqs: str) -> str:
     """
-    Get the most severe consequence from a variant Ensembl VEP
-    conseqeunces string.
+    Return the most severe consequence (human-readable display term) from an
+    Ensembl VEP consequences string.
 
     Parameters
     ----------
     csqs : str
-        Variant consequences string from Ensembl VEP, e.g.
-        "non_coding_transcript_exon_variant,non_coding_transcript_variant"
-    
+        VEP consequences delimited by '&' (standard) or ',' (tolerated), e.g.
+        "non_coding_transcript_exon_variant&non_coding_transcript_variant"
+
     Returns
     -------
     str
-        Most severe consequence from the input string, e.g.
-        "non_coding_transcript_exon_variant"
+        Display term for the most severe consequence, e.g.
+        "Non coding transcript exon variant".
     """
-
-    worst_csq_index = min(
-        [VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT[csq] for csq in csqs.split('&')])
-    worst_csq = VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT[worst_csq_index]
-    return VEP_CSQ_TERMS[worst_csq]
+    # Should not happen, but just in case.
+    try:
+        worst_csq_index = min(
+            [VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT[csq] 
+             for csq in csqs.replace(',', '&').split('&')])
+        worst_csq = VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT[worst_csq_index]
+        return VEP_CSQ_TERMS[worst_csq]
+    except:
+        return ''

@@ -4,7 +4,7 @@ from main.utils import get_worst_csq_display_term
 
 def get_variants(search_key: str, search_value: str) -> list:
     """
-    Search the database variant table using provided search paramters 
+    Search the database variant table using provided search parameters 
     and return a list of variant data rows (dicts) for the displayed
     variant table.
 
@@ -30,14 +30,18 @@ def get_variants(search_key: str, search_value: str) -> list:
     elif search_key == 'region':
         # Region format: {chrom}:{start_pos}-{end_pos}
         # Position format: {chrom}:{pos}
-        chrom, poses = search_value.split(':')
-        if '-' in poses:
-            start_pos, end_pos = poses.split('-')
-        else:
-            start_pos = end_pos = poses
-        db_variants = Variant.objects.select_related()\
-            .filter(chrom=chrom, pos__gte=int(start_pos), 
-                    pos__lte=int(end_pos)).order_by('pos')
+        try:
+            chrom, poses = search_value.split(':')
+            if '-' in poses:
+                start_pos, end_pos = poses.split('-')
+            else:
+                start_pos = end_pos = poses
+            db_variants = Variant.objects.select_related()\
+                .filter(chrom=chrom, pos__gte=int(start_pos), 
+                        pos__lte=int(end_pos)).order_by('pos')
+        except (ValueError, TypeError) as e:
+            # Return empty list for malformed input
+            return variants
     else:
         return variants
 

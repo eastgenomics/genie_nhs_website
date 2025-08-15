@@ -13,10 +13,27 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 import dotenv
 from pathlib import Path
+from typing import List, Optional
+
+from django.core.exceptions import ImproperlyConfigured
+
+# Environment file variables parsing helpers.
+def env_bool(name: str, default: bool = False) -> bool:
+    val = os.getenv(name)
+    if val is None:
+        return default
+    return str(val).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name: str, default: Optional[List[str]] = None) -> List[str]:
+    val = os.getenv(name)
+    if not val:
+        return default or []
+    return [item.strip() for item in val.split(",") if item.strip()]
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 # Read environment variables.
 dotenv_file = os.path.join(BASE_DIR, ".env")
@@ -27,15 +44,38 @@ if os.path.isfile(dotenv_file):
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(int(os.environ.get("DEBUG", default=0)))
+DEBUG = env_bool("DEBUG", default=False)
 
-DATA_FOLDER = Path(os.environ.get("DATA_FOLDER"))
-GENIE_VCF = os.environ.get("GENIE_VCF")
+# Enforce SECRET_KEY presence in non-debug environments
+if not SECRET_KEY:
+    # Provide dev fallback.
+    if DEBUG:
+        SECRET_KEY = "dev-insecure-secret-key"
+    else:
+        raise ImproperlyConfigured(
+            "SECRET_KEY must be set when DEBUG is False.")
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",") + ["127.0.0.1"]
+DATA_FOLDER = Path(os.getenv("DATA_FOLDER"))
+GENIE_VCF = os.getenv("GENIE_VCF")
+
+# Ensure that DATA_FOLDER is configured and GENIE_VCF file is in it.
+if not DATA_FOLDER or not GENIE_VCF or not (DATA_FOLDER / GENIE_VCF).is_file():
+    raise ImproperlyConfigured("DATA_FOLDER and GENIE_VCF file name must be "
+        "set and GENIE_VCF file must exist.")
+else:
+    GENIE_VCF = DATA_FOLDER / GENIE_VCF
+
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") + ["127.0.0.1", "localhost"]
+
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
+if not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = [
+        f"http://{h}" for h in ALLOWED_HOSTS 
+        if h not in {"127.0.0.1", "localhost"}
+    ] + ["http://127.0.0.1", "http://localhost"]
 
 # Application definition
 
@@ -109,7 +149,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/London"
 
 USE_I18N = True
 
@@ -118,9 +158,10 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = "static/"
-STATICFILES_DIRS = [STATIC_DIR, ]
+STATIC_DIR = BASE_DIR / "static"
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [STATIC_DIR]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

@@ -1,3 +1,24 @@
-from django.test import TestCase
+from django.test import TestCase, Client
+from django.urls import reverse, NoReverseMatch
 
-# Create your tests here.
+
+def r(name: str) -> str:
+    """Reverse with or without 'main' namespace, depending on project urls."""
+    try:
+        return reverse(f"main:{name}")
+    except NoReverseMatch:
+        return reverse(name)
+
+
+class IndexViewTests(TestCase):
+    def test_index_returns_200(self):
+        client = Client()
+        resp = client.get(r("index"))
+        self.assertEqual(resp.status_code, 200)
+
+
+class VariantsViewTests(TestCase):
+    def test_variants_returns_200(self):
+        client = Client()
+        resp = client.get(r("variants"))
+        self.assertEqual(resp.status_code, 200)

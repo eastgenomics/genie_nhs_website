@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 
 from main.lookups import get_variants
 from main.utils import CHROMOSOMES
@@ -12,7 +12,7 @@ def index(request):
 
 
 def search_view(request):
-    """Main webiste search that is available on all website pages.
+    """Main website search that is available on all website pages.
 
     This view is used to figure out search type and redirect to the
     appropriate page with required parameters. So far the website has 
@@ -36,13 +36,18 @@ def search_view(request):
 
 def ajax_variants(request):
     """Ajax request to obtain data for the variant table."""
-    variants = get_variants(request.GET.get('search_key', ''), 
-                            request.GET.get('search_value', ''))
-    data = {
-        'rows': variants,
-        'total': len(variants),
-    }
-    return JsonResponse(data)
+    try:
+        variants = get_variants(request.GET.get('search_key', ''), 
+                                request.GET.get('search_value', ''))
+        data = {
+            'rows': variants,
+            'total': len(variants),
+            'error': '',
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'rows': [], 'total': 0, 'error': str(e)}, 
+            status=500)        
 
 
 def variants(request):

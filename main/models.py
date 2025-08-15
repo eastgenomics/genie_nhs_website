@@ -2,23 +2,22 @@ from django.db import models
 
 
 class Variant(models.Model):
-    """The main (and the only) database table. Populated with the data 
-    from the transformed Genie VCF file. To keep the field name related 
-    info in one place (here) the following conventions were established
+    """The main (and only) database table, populated with data
+    from the transformed GENIE VCF file. To keep field-name-related
+    info in one place (here), the following conventions are established
     and MUST be maintained.
 
-    1. First four model attirubtes must be chrom, pos, ref, and alt in
-    that order. This can be changed but it db_importer.py will require
-    an update.
+    1. The first four model attributes must be chrom, pos, ref, and alt
+    in that order. This can be changed, but it will require an update 
+    in db_importer.py.
 
-    2. All fields which are populated from the data in VCF INFO column
-    must have "help_text" arguments and their values must match 
-    respective VCF INFO keys (used in db_importer.py).
+    2. All fields populated from the VCF INFO column must have 
+    "help_text" whose values match the respective VCF INFO keys 
+    (used in db_importer.py).
 
-    3. Fields which are displayed in variant table extended row 
-    subtables must have "verbose_name" arguments with values in 
-    "{subtable_prefix}:{displayed name}" format (used in lookups.py 
-    "get_variants" function). So far "PC_HaemOnc" prefix is used for 
+    3. Fields displayed in the variant-table extended-row subtables must have
+    "verbose_name" in the format "{subtable_prefix}:{displayed name}" (used in
+    lookups.py:get_variants). So far the "PC_HaemOnc" prefix is used for
     HaemOnc cancer patient counts.
     """
     chrom = models.CharField(max_length=100)
@@ -26,8 +25,7 @@ class Variant(models.Model):
     ref = models.TextField()
     alt = models.TextField()
 
-    gene_symbol = models.CharField(max_length=100, help_text='Hugo_Symbol', 
-        db_index=True)
+    gene_symbol = models.CharField(max_length=100, help_text='Hugo_Symbol')
     refseq_transcript = models.CharField(max_length=100, help_text='RefSeq', 
         null=True)
     consequence = models.CharField(max_length=600, help_text='Consequence')
@@ -105,6 +103,12 @@ class Variant(models.Model):
     all_cancers_count = models.IntegerField(help_text='all_cancers_count')
     haemonc_cancers_count = models.IntegerField(
         help_text='haemonc_cancers_count')
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['gene_symbol']),
+            models.Index(fields=['chrom', 'pos']),
+        ]
 
     def __str__(self):
         return f"{self.chrom}-{self.pos}-{self.ref}-{self.alt}"

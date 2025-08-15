@@ -11,6 +11,7 @@ import sqlite3
 from django.conf import settings
 from main.models import Variant
 
+from main.utils import get_worst_csq_display_term
 
 def import_vcf_variants() -> None:
     """
@@ -21,11 +22,14 @@ def import_vcf_variants() -> None:
     None    
     """
     # Connet to the SQLite database.
-    db = sqlite3.connect(settings.DATABASES['default']['NAME'])
-    cur = db.cursor()
-    
+    try:
+        db = sqlite3.connect(settings.DATABASES['default']['NAME'])
+        cur = db.cursor()
+    except sqlite3.Error as e:
+        sys.exit(f'Failed to connect to database: {e}')
+
     # Delete all previous variant records.
-    sql_query = f'DELETE FROM main_variant'
+    sql_query = 'DELETE FROM main_variant'
     cur.execute(sql_query)
     db.commit()
 
@@ -45,12 +49,14 @@ def import_vcf_variants() -> None:
     # the same order as the attribute names in the above SQL query.
     info_columns = [f.help_text for f in info_fields]
 
-    # Path to Genie VCF file.
-    source_vcf = settings.DATA_FOLDER / settings.GENIE_VCF
-
     def _insert_batch(batch_data: list):
         """
         Insert a batch of variant records to the database.
+
+        Parameters
+        ----------
+        batch_data : list
+            A list of variant table rows (lists).
 
         Returns
         -------
@@ -64,11 +70,30 @@ def import_vcf_variants() -> None:
             db.rollback()
             sys.exit('Please fix the problem and re-run the script.')
 
+    def _verify_csqs(csqs: str) -> None:
+        """
+        Verify that there are no unexpected VEP consequences.
+
+        Parameters
+        ----------
+        csqs : str
+            VEP consequences delimited by '&' e.g.
+            "non_coding_transcript_exon_variant&non_coding_transcript_variant"
+        Returns
+        -------
+        None
+        """
+        most_severe_csq = get_worst_csq_display_term(csqs)
+        if not most_severe_csq:
+            sys.exit('Failed to indentify the most severe consequence from '
+                f'"{csqs}". Please check that consequence are delimited by '
+                '"&" and that all consequences are present in VEP_CSQ_TERMS')        
+
     # Counter to store the total number of processed variants.
     count = 0
-    # A list to store varint rows for insertion to the database.
+    # A list to store variant rows for insertion to the database.
     batch_data = []
-    with gzip.open(source_vcf, mode='rt') as f:
+    with gzip.open(settings.GENIE_VCF, mode='rt') as f:
         reader = csv.reader(f, delimiter='\t')
 
         # Loop through the VCF file rows.
@@ -91,7 +116,11 @@ def import_vcf_variants() -> None:
                     key, val = info_item.split('=', 1)
                     info_dict[key] = val
 
-            # Construct a varint row with values from the VCF in the
+                    if key == 'Consequence':
+                        # Ensure that there are no unexpected VEP csqs.
+                        _verify_csqs(val)
+
+            # Construct a variant row with values from the VCF in the
             # same order as the model attribute names in the SQL query.
             # The first item is "None" for the auto-generated ID.
             db_row = [None, chrom, pos, ref, alt]
@@ -117,5 +146,6 @@ def import_vcf_variants() -> None:
     print('Successfully re-populated "variant" table.')
 
 
-# Re-populate variant table.
-import_vcf_variants()
+if __name__ == '__main__':
+    # Re-populate variant table.
+    import_vcf_variants()
