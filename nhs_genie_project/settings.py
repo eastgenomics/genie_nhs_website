@@ -58,14 +58,11 @@ if not SECRET_KEY:
         raise ImproperlyConfigured(
             "SECRET_KEY must be set when DEBUG is False.")
 
-DATA_FOLDER = Path(os.getenv("DATA_FOLDER"))
-GENIE_VCF = os.getenv("GENIE_VCF")
-
-# Ensure that DATA_FOLDER is configured and GENIE_VCF file is in it.
-if not DATA_FOLDER or not GENIE_VCF or not (DATA_FOLDER / GENIE_VCF).is_file():
-    raise ImproperlyConfigured("DATA_FOLDER and GENIE_VCF file name must be "
-        "set and GENIE_VCF file must exist.")
-else:
+DATA_FOLDER = os.getenv("DATA_FOLDER") or None
+if DATA_FOLDER:
+    DATA_FOLDER = Path(DATA_FOLDER)
+GENIE_VCF = Path(os.getenv("GENIE_VCF")) or None
+if GENIE_VCF and DATA_FOLDER:
     GENIE_VCF = DATA_FOLDER / GENIE_VCF
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") + ["127.0.0.1", "localhost"]
@@ -76,6 +73,10 @@ if not CSRF_TRUSTED_ORIGINS:
         f"http://{h}" for h in ALLOWED_HOSTS 
         if h not in {"127.0.0.1", "localhost"}
     ] + ["http://127.0.0.1", "http://localhost"]
+
+# Honour X-Forwarded-Proto from the proxy (safe even when running over HTTP)
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 

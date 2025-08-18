@@ -1,6 +1,20 @@
 from main.models import Variant
 from main.utils import get_worst_csq_display_term
 
+# Group bootstrap-table detailed view sub-tables (key-value) fields 
+# into dicts in which keys are "Variant" attribute names and values 
+# are the displayed field names (verbose name without a prefix). 
+# HaemOnc cancer patient count fields have "PC_HaemOnc:" prefix.
+VAR_SUBTABLE_FIELDS = {}
+
+haemonc_pc_names = {}
+for f in Variant._meta.get_fields():
+    if f.verbose_name.startswith('PC_HaemOnc:'):
+        haemonc_pc_names[f.attname] = \
+            f.verbose_name.replace('PC_HaemOnc:', '')
+
+VAR_SUBTABLE_FIELDS['PC_HaemOnc'] = haemonc_pc_names
+
 
 def get_variants(search_key: str, search_value: str) -> list:
     """
@@ -39,29 +53,18 @@ def get_variants(search_key: str, search_value: str) -> list:
             db_variants = Variant.objects.select_related()\
                 .filter(chrom=chrom, pos__gte=int(start_pos), 
                         pos__lte=int(end_pos)).order_by('pos')
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             # Return empty list for malformed input
             return variants
     else:
         return variants
-
-    # Group bootstrap-table detailed view sub-tables (key-value) fields 
-    # into dicts in which keys are "Variant" attribute names and values 
-    # are the displayed field names (verbose name without a prefix). 
-    # HaemOnc cancer patient count fields have "PC_HaemOnc:" prefix.
-    haemonc_pc_names = {}
-    for f in Variant._meta.get_fields():
-        if f.verbose_name.startswith('PC_HaemOnc:'):
-            haemonc_pc_names[f.attname] = \
-                f.verbose_name.replace('PC_HaemOnc:', '')
-    
 
     for db_variant in db_variants:
         # Create bootstrap-table detailed view sub-tables data dicts.
         # In case of HaemOnc cancer patient counts, keys are 
         # cancer type names and values are patient counts.
         haemonc_pcs = {}
-        for attr, name in haemonc_pc_names.items():
+        for attr, name in VAR_SUBTABLE_FIELDS['PC_HaemOnc'].items():
             var_patient_count = getattr(db_variant, attr)
             if var_patient_count:
                 haemonc_pcs[name] = var_patient_count

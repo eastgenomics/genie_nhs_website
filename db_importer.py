@@ -21,6 +21,10 @@ def import_vcf_variants() -> None:
     -------
     None    
     """
+    if not settings.GENIE_VCF.is_file():
+        sys.exit(f'DB reset was canceled, Genie VCF file was not found:\n' + \
+            str(settings.GENIE_VCF))
+
     # Connet to the SQLite database.
     try:
         db = sqlite3.connect(settings.DATABASES['default']['NAME'])

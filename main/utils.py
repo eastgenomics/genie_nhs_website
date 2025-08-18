@@ -1,6 +1,3 @@
-import sys
-
-
 CHROMOSOMES = ['%s' % x for x in range(1, 23)]
 CHROMOSOMES.extend(['X', 'Y', 'MT'])
 
@@ -39,7 +36,7 @@ VEP_CSQ_TERMS = {
     '3_prime_UTR_variant': '3 prime UTR variant',
     'non_coding_transcript_exon_variant': 'Non coding transcript exon variant',
     'intron_variant': 'Intron variant',
-    'NMD_transcript_variant': 'transcript variant',
+    'NMD_transcript_variant': 'Transcript variant',
     'non_coding_transcript_variant': 'Non coding transcript variant',
     'coding_transcript_variant': 'Coding transcript variant',
     'upstream_gene_variant': 'Upstream gene variant',
@@ -57,11 +54,11 @@ VEP_CSQ_TERMS = {
 # Create VEP consequence term to severity rank dict, i.e.
 # { 'transcript_ablation': 0, 'splice_acceptor_variant': 1, ... }
 VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT = {
-    csq:i for i,csq in enumerate(list(VEP_CSQ_TERMS))
+    csq: i for i,csq in enumerate(list(VEP_CSQ_TERMS))
 }
 # Create VEP severity to consequence term rank dict, i.e.
 # { 0: 'transcript_ablation', 1: 'splice_acceptor_variant', ... }
-VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT = dict(enumerate(list(VEP_CSQ_TERMS)))
+VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT = dict(enumerate(VEP_CSQ_TERMS.keys()))
 
 
 def get_worst_csq_display_term(csqs: str) -> str:

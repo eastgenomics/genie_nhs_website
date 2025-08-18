@@ -9,7 +9,7 @@ A website to browse Genie data.
 The project expects an .env file in the root directory with the following variables:
 
 ```env
-# Debug mode boolean (the production docker container is always built with debug turned off)
+# Debug mode boolean
 DEBUG
 # Secret production key
 SECRET_KEY
@@ -25,7 +25,7 @@ GENIE_VCF
 CSRF_TRUSTED_ORIGINS
 ```
 
-## Running for development
+## Running locally (development)
 1. Go to the project directory
 2. Create Python virtual environment:
     ```bash
@@ -52,8 +52,12 @@ CSRF_TRUSTED_ORIGINS
     python manage.py runserver 8080
     ```
 
-## Running for production
-1. Build and run the docker container:
+## Running in docker (production)
+* Build and run the docker container when database is ready (i.e. after db_importer.py was executed):
     ```bash
     docker compose up --build
+    ```
+* Build and run the docker container, and re-seed the database:
+    ```bash
+    docker compose --profile reset up --build
     ```

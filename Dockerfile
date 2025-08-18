@@ -1,5 +1,5 @@
 # Stage 1: Base build stage
-FROM python:3.13-slim AS builder
+FROM python:3.12-slim AS builder
  
 # Create the app directory
 RUN mkdir /app
@@ -21,7 +21,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
  
 # Stage 2: Production stage
-FROM python:3.13-slim
+FROM python:3.12-slim
  
 RUN useradd -m -r appuser && \
    mkdir /app && \
@@ -40,8 +40,8 @@ COPY --chown=appuser:appuser . .
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1 
 
-# Switch to non-root user
-USER appuser
-
 # Make staticfiles folder accessible for non-root user
 RUN mkdir -p /app/staticfiles && chown -R appuser:appuser /app/staticfiles
+
+# Switch to non-root user
+USER appuser
