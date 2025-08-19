@@ -1,5 +1,4 @@
-CHROMOSOMES = ['%s' % x for x in range(1, 23)]
-CHROMOSOMES.extend(['X', 'Y', 'MT'])
+CHROMOSOMES = tuple(str(x) for x in range(1, 23)) + ('X', 'Y', 'MT')
 
 # A dictionary with Ensembl VEP consequences SO and display terms
 # ordered from the most to least severe. This order is essential for
@@ -54,11 +53,11 @@ VEP_CSQ_TERMS = {
 # Create VEP consequence term to severity rank dict, i.e.
 # { 'transcript_ablation': 0, 'splice_acceptor_variant': 1, ... }
 VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT = {
-    csq: i for i,csq in enumerate(list(VEP_CSQ_TERMS))
+    csq: i for i, csq in enumerate(VEP_CSQ_TERMS)
 }
 # Create VEP severity to consequence term rank dict, i.e.
 # { 0: 'transcript_ablation', 1: 'splice_acceptor_variant', ... }
-VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT = dict(enumerate(VEP_CSQ_TERMS.keys()))
+VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT = dict(enumerate(VEP_CSQ_TERMS))
 
 
 def get_worst_csq_display_term(csqs: str) -> str:
@@ -78,12 +77,13 @@ def get_worst_csq_display_term(csqs: str) -> str:
         Display term for the most severe consequence, e.g.
         "Non coding transcript exon variant".
     """
-    # Should not happen, but just in case.
-    try:
-        worst_csq_index = min(
-            [VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT[csq] 
-             for csq in csqs.replace(',', '&').split('&')])
-        worst_csq = VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT[worst_csq_index]
-        return VEP_CSQ_TERMS[worst_csq]
-    except:
+    csqs_list = csqs.replace(',', '&').split('&')
+    if not csqs_list:
         return ''
+    # Fail-fast sentinel on unknown terms to align with importer validation.
+    if any(csq not in VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT for csq in csqs_list):
+        return ''
+    worst_csq_index = min(VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT[csq] 
+                          for csq in csqs_list)
+    worst_csq = VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT[worst_csq_index]
+    return VEP_CSQ_TERMS[worst_csq]

@@ -9,8 +9,9 @@ import csv
 import sqlite3
 
 from django.conf import settings
-from main.models import Variant
+from django.db.models import NOT_PROVIDED
 
+from main.models import Variant
 from main.utils import get_worst_csq_display_term
 
 def import_vcf_variants() -> None:
@@ -22,10 +23,10 @@ def import_vcf_variants() -> None:
     None    
     """
     if not settings.GENIE_VCF.is_file():
-        sys.exit(f'DB reset was canceled, Genie VCF file was not found:\n' + \
+        sys.exit('DB reset was canceled, Genie VCF file was not found:\n' + \
             str(settings.GENIE_VCF))
 
-    # Connet to the SQLite database.
+    # Connect to the SQLite database.
     try:
         db = sqlite3.connect(settings.DATABASES['default']['NAME'])
         cur = db.cursor()
@@ -48,10 +49,6 @@ def import_vcf_variants() -> None:
     sql_column_values = ', '.join(['?'] * (5 + len(info_fields)))
     sql_query = (f'INSERT INTO main_variant ({sql_column_names}) '
                  f'VALUES ({sql_column_values})')
-
-    # Get VCF INFO fields name from the variant model help text in
-    # the same order as the attribute names in the above SQL query.
-    info_columns = [f.help_text for f in info_fields]
 
     def _insert_batch(batch_data: list):
         """
@@ -90,8 +87,8 @@ def import_vcf_variants() -> None:
         most_severe_csq = get_worst_csq_display_term(csqs)
         if not most_severe_csq:
             sys.exit('Failed to indentify the most severe consequence from '
-                f'"{csqs}". Please check that consequence are delimited by '
-                '"&" and that all consequences are present in VEP_CSQ_TERMS')        
+                f'"{csqs}". Ensure consequences are delimited by "&" (or ",") '
+                'and that all terms are present in VEP_CSQ_TERMS.')        
 
     # Counter to store the total number of processed variants.
     count = 0
@@ -108,7 +105,7 @@ def import_vcf_variants() -> None:
             
             # Get non-INFO variant model fields data.
             chrom = row[0]
-            pos = row[1]
+            pos = int(row[1])
             ref = row[3]
             alt = row[4]
 
@@ -128,11 +125,13 @@ def import_vcf_variants() -> None:
             # same order as the model attribute names in the SQL query.
             # The first item is "None" for the auto-generated ID.
             db_row = [None, chrom, pos, ref, alt]
-            for info_column in info_columns:
-                if info_column in info_dict:
-                    db_row.append(info_dict[info_column])
-                else:
-                    db_row.append(None)
+            for f in info_fields:
+                # Get VCF INFO fields name from the variant model help text.
+                val = info_dict.get(f.help_text, None)
+                # If INFO key is missing and model field has default - use it.
+                if val is None and f.default is not NOT_PROVIDED:
+                    val = f.get_default()
+                db_row.append(val)
             batch_data.append(db_row)
 
             # Insert a batch of variant rows to the database.

@@ -36,7 +36,6 @@ services:
       web:
         condition: service_healthy
     volumes:
-      - static_volume:/app/staticfiles
       - ${DATA_FOLDER}:${DATA_FOLDER}
     env_file:
       - .env

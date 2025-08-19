@@ -21,6 +21,7 @@ def search_view(request):
     """
     # Get search value.
     search_value = request.GET.get('search_value', '')
+    search_value = search_value.strip()
     
     # Figure out search type and construct redirect url.
     if ':' in search_value and search_value.split(':')[0] in CHROMOSOMES:

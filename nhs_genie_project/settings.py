@@ -36,9 +36,9 @@ def env_list(name: str, default: Optional[List[str]] = None) -> List[str]:
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Read environment variables.
-dotenv_file = os.path.join(BASE_DIR, ".env")
-if os.path.isfile(dotenv_file):
-    dotenv.load_dotenv(dotenv_file)
+dotenv_path = BASE_DIR / ".env"
+if dotenv_path.is_file():
+    dotenv.load_dotenv(dotenv_path)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -61,7 +61,7 @@ if not SECRET_KEY:
 DATA_FOLDER = os.getenv("DATA_FOLDER") or None
 if DATA_FOLDER:
     DATA_FOLDER = Path(DATA_FOLDER)
-GENIE_VCF = Path(os.getenv("GENIE_VCF")) or None
+GENIE_VCF = os.getenv("GENIE_VCF") or None
 if GENIE_VCF and DATA_FOLDER:
     GENIE_VCF = DATA_FOLDER / GENIE_VCF
 
@@ -69,10 +69,13 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") + ["127.0.0.1", "localhost"]
 
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 if not CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS = [
-        f"http://{h}" for h in ALLOWED_HOSTS 
-        if h not in {"127.0.0.1", "localhost"}
-    ] + ["http://127.0.0.1", "http://localhost"]
+    if DEBUG:
+        CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1", "http://localhost"]
+    else:
+        CSRF_TRUSTED_ORIGINS = [
+            f"https://{h}" for h in ALLOWED_HOSTS
+            if h not in {"127.0.0.1", "localhost"}
+        ]
 
 # Honour X-Forwarded-Proto from the proxy (safe even when running over HTTP)
 USE_X_FORWARDED_HOST = True
