@@ -23,7 +23,7 @@ def import_vcf_variants() -> None:
     None    
     """
     if not settings.GENIE_VCF.is_file():
-        sys.exit('DB reset was canceled, Genie VCF file was not found:\n' + \
+        sys.exit('DB reset was cancelled; Genie VCF file was not found:\n' + \
             str(settings.GENIE_VCF))
 
     # Connect to the SQLite database.
@@ -86,7 +86,7 @@ def import_vcf_variants() -> None:
         """
         most_severe_csq = get_worst_csq_display_term(csqs)
         if not most_severe_csq:
-            sys.exit('Failed to indentify the most severe consequence from '
+            sys.exit('Failed to identify the most severe consequence from '
                 f'"{csqs}". Ensure consequences are delimited by "&" (or ",") '
                 'and that all terms are present in VEP_CSQ_TERMS.')        
 
@@ -100,7 +100,7 @@ def import_vcf_variants() -> None:
         # Loop through the VCF file rows.
         for row in reader:
             # Skip header rows.
-            if row[0][0] == '#':
+            if row[0].startswith('#'):
                 continue
             
             # Get non-INFO variant model fields data.
@@ -147,6 +147,7 @@ def import_vcf_variants() -> None:
         count += len(batch_data)
         print(f'Processed {count} variants')
     print('Successfully re-populated "variant" table.')
+    db.close()
 
 
 if __name__ == '__main__':

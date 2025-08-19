@@ -14,7 +14,12 @@
             <div id="div-table-variants" class="table-variants" hidden="hidden">
                 <div class="row pt-1 align-items-center">
                     <div class="col col-auto">
-                        <input class="w-auto form-control my-2 search-box" type="text" id="customSearch" placeholder="Search variant table">
+                        <div class="input-group my-2">
+                            <input class="w-auto form-control search-box" type="text" id="customSearch" placeholder="Search variant table">
+                            <button class="btn btn-secondary btn-sm" type="button" onclick="resetSearch()">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="col col-auto">
                         <div class="vr mt-1" style="height: 34px;"></div>
@@ -50,6 +55,7 @@
                         data-ajax="ajaxRequest"
                         data-page-size="18"
                         data-pagination="true"
+                        data-filter-control="true"
                         data-pagination-parts="['pageList']">
                         <thead>
                             <!-- Table column width configuration have the following quirks:
@@ -77,13 +83,13 @@
                                 only when at least one other column does not have fixed "data-width".
                             -->
                             <tr class="primary">
-                                <th data-field="chrom" data-sortable="true" data-width="20" data-halign="center" data-align="center" data-valign="middle">Chrom</th>
-                                <th data-field="pos" data-sortable="true" data-width="20" data-halign="center" data-valign="middle">Position</th>
-                                <th data-field="consequence" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Consequence</th>
-                                <th data-field="hgvs_c" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSc</th>
-                                <th data-field="hgvs_p" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSp</th>
-                                <th data-field="refseq_transcript" data-sortable="true" data-halign="center" data-valign="middle">Refseq<br>transcript</th>
-                                <th data-field="gene" data-sortable="true" data-halign="center" data-valign="middle">Gene</th>
+                                <th data-field="chrom" data-filter-control="input" data-sortable="true" data-width="20" data-halign="center" data-align="center" data-valign="middle">Chrom</th>
+                                <th data-field="pos" data-filter-control="input" data-sortable="true" data-width="20" data-halign="center" data-valign="middle">Position</th>
+                                <th data-field="consequence" data-filter-control="input" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Consequence</th>
+                                <th data-field="hgvs_c" data-filter-control="input" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSc</th>
+                                <th data-field="hgvs_p" data-filter-control="input" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSp</th>
+                                <th data-field="refseq_transcript" data-filter-control="input" data-sortable="true" data-halign="center" data-valign="middle">Transcript</th>
+                                <th data-field="gene" data-filter-control="input" data-sortable="true" data-halign="center" data-valign="middle">Gene</th>
                                 <th data-field="haemonc_cancers_count" data-sortable="true" data-width="27" data-halign="center" data-align="right" data-valign="middle">HaemOnc<br>patient count</th>
                                 <th data-field="all_cancers_count" data-sortable="true" data-width="20" data-halign="center" data-align="right" data-valign="middle">All patient<br>count</th>
                             </tr>
@@ -96,6 +102,11 @@
 </div>
 <script>
     var $table = $('#table-variants');
+
+    // Clear all filters
+    function resetSearch() {
+        $table.bootstrapTable('resetSearch');
+    }
 
     // Update table variants (rows) count on the UI.
     function updateVariantCount() {
