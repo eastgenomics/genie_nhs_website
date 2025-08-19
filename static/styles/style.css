@@ -118,6 +118,7 @@ body {
 /* Custom table classes */
 .table-variants {
     font-size: 12px;
+    border-collapse: collapse;
     font-family: Verdana, sans-serif;
 }
 
@@ -145,7 +146,6 @@ th.secondary,
 td.secondary {
     text-align: center;
     border: 1px solid white;
-    border-collapse: collapse;
     padding-right: 10px;
     padding-left: 10px;
 }
