@@ -1,0 +1,113 @@
+vcf_name,display_name,is_haemonc,total_patient_count
+AdenocarcinomaInSitu,Adenocarcinoma in Situ,0,4
+AdrenalGlandCancer,Adrenal Gland Cancer,0,1
+AdrenocorticalAdenoma,Adrenocortical Adenoma,0,21
+AdrenocorticalCarcinoma,Adrenocortical Carcinoma,0,170
+All_Cancers,All Cancers,0,160761
+AmpullaryCancer,Ampullary Cancer,0,419
+AnalCancer,Anal Cancer,0,383
+AngiomatoidFibrousHistiocytoma,Angiomatoid Fibrous Histiocytoma,1,5
+AppendicealCancer,Appendiceal Cancer,0,739
+BLymphoblasticLeukemiaLymphoma,B-Lymphoblastic Leukemia/Lymphoma,1,637
+BiliaryTractCancer,Biliary Tract Cancer,0,3
+BladderCancer,Bladder Cancer,0,4831
+BladderUrinaryTractCancer,Bladder Urinary Tract Cancer,0,3
+BlasticPlasmacytoidDendriticCellNeoplasm,Blastic Plasmacytoid Dendritic Cell Neoplasm,1,32
+BloodCancerNOS,Blood Cancer NOS,1,303
+BloodCancer,Blood Cancer,1,3
+BoneCancer,Bone Cancer,0,722
+BowelCancer,Bowel Cancer,0,3
+BreastCancer,Breast Cancer,0,14260
+BreastSarcoma,Breast Sarcoma,0,120
+CNSBrainCancer,CNS Brain Cancer,0,8
+CNSCancer,CNS Cancer,0,940
+CancerofUnknownPrimary,Cancer of Unknown Primary,0,6126
+CervicalCancer,Cervical Cancer,0,831
+ChoroidPlexusTumor,Choroid Plexus Tumor,0,54
+ClearCellSarcomaofKidney,Clear Cell Sarcoma of Kidney,0,3
+ColorectalCancer,Colorectal Cancer,0,18714
+DesmoplasticNodularMedulloblastoma,Desmoplastic Nodular Medulloblastoma,0,14
+EmbryonalTumor,Embryonal Tumor,0,348
+EndometrialCancer,Endometrial Cancer,0,6866
+EsophagealStomachCancer,Esophageal Stomach Cancer,0,9
+EsophagogastricCancer,Esophagogastric Cancer,0,5374
+EyeCancer,Eye Cancer,0,2
+GastrointestinalNeuroendocrineTumor,Gastrointestinal Neuroendocrine Tumor,0,503
+GastrointestinalNeuroendocrineTumorsoftheEsophagusStomach,Gastrointestinal Neuroendocrine Tumors of the Esophagus Stomach,0,20
+GastrointestinalStromalTumor,Gastrointestinal Stromal Tumor,0,1461
+GermCellTumor,Germ Cell Tumor,0,598
+GestationalTrophoblasticDisease,Gestational Trophoblastic Disease,0,21
+Glioma,Glioma,0,10867
+Haemonc_Cancers,Haemonc Cancers,1,13906
+HeadandNeckCancer,Headand Neck Cancer,0,2109
+HepatobiliaryCancer,Hepatobiliary Cancer,0,3592
+Histiocytosis,Histiocytosis,1,402
+HodgkinLymphoma,Hodgkin Lymphoma,1,61
+KidneyCancer,Kidney Cancer,0,4
+LacrimalGlandTumor,Lacrimal Gland Tumor,0,3
+LargeCellAnaplasticMedulloblastoma,Large Cell Anaplastic Medulloblastoma,0,4
+Leukemia,Leukemia,1,3303
+LiverCancer,Liver Cancer,0,6
+LungCancer,Lung Cancer,0,14
+LymphaticCancerNOS,Lymphatic Cancer NOS,1,153
+LymphaticCancer,Lymphatic Cancer,1,3
+MalignantGlomusTumor,Malignant Glomus Tumor,0,3
+MalignantRhabdoidTumoroftheLiver,Malignant Rhabdoid Tumor of the Liver,0,1
+Mastocytosis,Mastocytosis,1,52
+MatureBCellNeoplasms,Mature B-Cell Neoplasms,1,5194
+MatureTandNKNeoplasms,Mature T and NK Neoplasms,1,723
+Medulloblastoma,Medulloblastoma,0,57
+Melanocytoma,Melanocytoma,0,130
+Melanoma,Melanoma,0,7384
+Mesothelioma,Mesothelioma,0,566
+MiscellaneousBrainTumor,Miscellaneous Brain Tumor,0,272
+MiscellaneousNeuroepithelialTumor,Miscellaneous Neuroepithelial Tumor,0,138
+MyelodysplasticMyeloproliferativeNeoplasms,Myelodysplastic/Myeloproliferative Neoplasms,1,450
+MyelodysplasticSyndromes,Myelodysplastic Syndromes,1,1320
+MyeloidNeoplasmswithGermLinePredisposition,Myeloid Neoplasms with Germline Predisposition,1,4
+MyeloproliferativeNeoplasms,Myeloproliferative Neoplasms,1,1616
+Myofibromatosis,Myofibromatosis,0,1
+NerveSheathTumor,Nerve Sheath Tumor,0,344
+NonHodgkinLymphoma,Non-Hodgkin Lymphoma,1,59
+NonSmallCellLungCancer,Non-Small Cell Lung Cancer,0,24105
+OtherCancer,Other Cancer,0,111
+OvarianCancer,Ovarian Cancer,0,7450
+OvarianFallopianTubeCancer,Ovarian Fallopian Tube Cancer,0,5
+PancreaticCancer,Pancreatic Cancer,0,8677
+ParathyroidCancer,Parathyroid Cancer,0,28
+PenileCancer,Penile Cancer,0,71
+PeripheralNervousSystem,Peripheral Nervous System,0,317
+PeritonealCancerNOS,Peritoneal Cancer NOS,0,111
+PeritonealCancer,Peritoneal Cancer,0,8
+Pheochromocytoma,Pheochromocytoma,0,32
+PinealTumor,Pineal Tumor,0,49
+PosttransplantLymphoproliferativeDisorders,Posttransplant Lymphoproliferative Disorders,1,15
+PrimaryCNSMelanocyticTumors,Primary CNS Melanocytic Tumors,0,7
+ProstateCancer,Prostate Cancer,0,4488
+RenalCellCarcinoma,Renal Cell Carcinoma,0,1814
+RenalNeuroendocrineTumor,Renal Neuroendocrine Tumor,0,5
+Retinoblastoma,Retinoblastoma,0,57
+RhabdoidCancer,Rhabdoid Cancer,0,4
+SalivaryGlandCancer,Salivary Gland Cancer,0,740
+SellarTumor,Sellar Tumor,0,183
+SexCordStromalTumor,Sex Cord Stromal Tumor,0,148
+Sialoblastoma,Sialoblastoma,0,1
+SkinCancerNonMelanoma,Skin Cancer Non-Melanoma,0,1207
+SkinCancer,Skin Cancer,0,7
+SmallBowelCancer,Small Bowel Cancer,0,555
+SmallCellLungCancer,Small Cell Lung Cancer,0,1126
+SoftTissueCancer,Soft Tissue Cancer,0,20
+SoftTissueSarcoma,Soft Tissue Sarcoma,0,3450
+TLymphoblasticLeukemiaLymphoma,T-Lymphoblastic Leukemia/Lymphoma,1,158
+TesticularCancer,Testicular Cancer,0,1
+ThymicTumor,Thymic Tumor,0,162
+ThyroidCancer,Thyroid Cancer,0,2320
+TubularAdenomaoftheColon,Tubular Adenoma of the Colon,0,56
+UNKNOWN,UNKNOWN,0,2439
+UndifferentiatedEmbryonalSarcomaoftheLiver,Undifferentiated Embryonal Sarcoma of the Liver,0,10
+UterineCancer,Uterine Cancer,0,2
+UterineSarcoma,Uterine Sarcoma,0,606
+VaginalCancer,Vaginal Cancer,0,208
+VulvarCarcinoma,Vulvar Carcinoma,0,5
+VulvarVaginalCancer,Vulvar Vaginal Cancer,0,3
+WilmsTumor,Wilms Tumor,0,139

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import JsonResponse
 
-from main.lookups import get_variants
+from main.lookups import get_variants, get_variant_cancer_type_pcs
 from main.utils import CHROMOSOMES
 
 
@@ -49,6 +49,16 @@ def ajax_variants(request):
     except Exception as e:
         return JsonResponse({'rows': [], 'total': 0, 'error': str(e)}, 
             status=500)        
+
+
+def ajax_variant_cancer_pcs(request):
+    """Ajax request to obtain data for the variant cancer types patient 
+    count subtable.
+    """
+    data = {
+        'rows': get_variant_cancer_type_pcs(request.GET.get('variant_id', None))
+    }
+    return JsonResponse(data)
 
 
 def variants(request):

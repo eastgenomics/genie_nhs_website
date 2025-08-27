@@ -1,20 +1,50 @@
-from main.models import Variant
+from main.models import Variant, VariantCancerTypePatientCount
 from main.utils import get_worst_csq_display_term
 
-# Group bootstrap-table detailed view sub-tables (key-value) fields 
-# into dicts in which keys are "Variant" attribute names and values 
-# are the displayed field names (verbose name without a prefix). 
-# HaemOnc cancer patient count fields have "PC_HaemOnc:" prefix.
-VAR_SUBTABLE_FIELDS = {}
 
-haemonc_pc_names = {}
-for f in Variant._meta.get_fields():
-    if f.verbose_name.startswith('PC_HaemOnc:'):
-        haemonc_pc_names[f.attname] = \
-            f.verbose_name.replace('PC_HaemOnc:', '')
+def get_variant_cancer_type_pcs(variant_id) -> list:
+    """
+    Search the database variant cancer type patient count table by
+    variant id and return a list variant cancer types patient count
+    data rows for the extended row subtable.
 
-VAR_SUBTABLE_FIELDS['PC_HaemOnc'] = haemonc_pc_names
+    Parameters
+    ----------
+    variant_id : int
+        A database id of a variant.
+    
+    Returns
+    -------
+    data: list
+        A list of dictionaries which stores variant cancer types patient 
+        counts subtable rows data.
+    """
 
+    var_pc_cancers = VariantCancerTypePatientCount.objects.select_related()\
+        .filter(variant_id=variant_id)
+    
+    data = []
+    for var_pc_cancer in var_pc_cancers:
+        if var_pc_cancer.cancer_type.is_haemonc:
+            is_haemonc = '&#9989;' # Tick
+        else:
+            is_haemonc = '&#10060;' # Cross
+        row = {
+            'cancer_type': var_pc_cancer.cancer_type.cancer_type,
+            'is_haemonc': is_haemonc,
+            'same_nucleotide_change_pc': \
+                var_pc_cancer.same_nucleotide_change_pc,
+            'same_amino_acid_change_pc': \
+                var_pc_cancer.same_amino_acid_change_pc,
+            'same_or_downstream_truncating_variants_per_cds_pc': \
+                var_pc_cancer.same_or_downstream_truncating_variants_per_cds_pc,
+            'nested_inframe_deletions_per_cds_pc': \
+                var_pc_cancer.nested_inframe_deletions_per_cds_pc,
+            'cancer_n': var_pc_cancer.cancer_type.total_patient_count,
+        }
+        data.append(row)
+    return data
+    
 
 def get_variants(search_key: str, search_value: str) -> list:
     """
@@ -29,6 +59,7 @@ def get_variants(search_key: str, search_value: str) -> list:
     search_value : str
         Search value - gene name (e.g. NF1), chromosomal region 
         (e.g. 17:31226000-31227000) or position (e.g. 7:140753336) location.
+    
     Returns
     -------
     variants: list
@@ -59,29 +90,24 @@ def get_variants(search_key: str, search_value: str) -> list:
     else:
         return variants
 
-    for db_variant in db_variants:
-        # Create bootstrap-table detailed view sub-tables data dicts.
-        # In case of HaemOnc cancer patient counts, keys are 
-        # cancer type names and values are patient counts.
-        haemonc_pcs = {}
-        for attr, name in VAR_SUBTABLE_FIELDS['PC_HaemOnc'].items():
-            var_patient_count = getattr(db_variant, attr)
-            if var_patient_count:
-                haemonc_pcs[name] = var_patient_count
+    def _format_hgvs(hgvs):
+        """Split joined HGVS descriptions."""
+        return hgvs.replace('&', ', ') if hgvs else hgvs
 
+    for db_variant in db_variants:
         # Construct variant dict which keys matches variant table 
         # "data-field" properties in "variants.html" template.
         variant = {
+            'variant_id': db_variant.id,
             'chrom': db_variant.chrom,
             'pos': db_variant.pos,
             'consequence': get_worst_csq_display_term(db_variant.consequence),
-            'hgvs_c': db_variant.hgvs_c,
-            'hgvs_p': db_variant.hgvs_p,
+            'hgvs_c': _format_hgvs(db_variant.hgvs_c),
+            'hgvs_p': _format_hgvs(db_variant.hgvs_p),
             'gene': db_variant.gene_symbol,
             'refseq_transcript': db_variant.refseq_transcript,
             'haemonc_cancers_count': db_variant.haemonc_cancers_count,
             'all_cancers_count': db_variant.all_cancers_count,
-            'haemonc_pcs': haemonc_pcs,
         }
         variants.append(variant)
     return variants

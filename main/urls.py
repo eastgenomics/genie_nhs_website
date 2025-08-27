@@ -8,4 +8,5 @@ urlpatterns = [
     path('variants/', views.variants, name='variants'),
     path('search/', views.search_view, name='search'),
     path('ajax_variants/', views.ajax_variants, name='ajax_variants'),
+    path('ajax_variant_cancer_pcs', views.ajax_variant_cancer_pcs, name='ajax_variant_cancer_pcs'),
 ]

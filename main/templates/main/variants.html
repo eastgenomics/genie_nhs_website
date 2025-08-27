@@ -14,12 +14,9 @@
             <div id="div-table-variants" class="table-variants" hidden="hidden">
                 <div class="row pt-1 align-items-center">
                     <div class="col col-auto">
-                        <div class="input-group my-2">
-                            <input class="w-auto form-control search-box" type="text" id="customSearch" placeholder="Search variant table">
-                            <button class="btn btn-secondary btn-sm" type="button" onclick="resetSearch()">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
+                        <button id="clear-filters-btn" class="btn btn-secondary btn-sm" onclick="clearFilters()">
+                            <i class="fas fa-rotate"></i>
+                        </button>
                     </div>
                     <div class="col col-auto">
                         <div class="vr mt-1" style="height: 34px;"></div>
@@ -35,6 +32,9 @@
                             to display number of variants (rows) in the table
                             after applying all filters. -->
                         <h6 class="px-0 m-0"><b>Variants:</b> <span id="var-count-text"></span></h6>
+                    </div>
+                    <div class="col col-auto ms-auto">
+                        * Same nucleotide change
                     </div>
                 </div>
                 <div class="row">
@@ -90,8 +90,8 @@
                                 <th data-field="hgvs_p" data-filter-control="input" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSp</th>
                                 <th data-field="refseq_transcript" data-filter-control="input" data-sortable="true" data-halign="center" data-valign="middle">Transcript</th>
                                 <th data-field="gene" data-filter-control="input" data-sortable="true" data-halign="center" data-valign="middle">Gene</th>
-                                <th data-field="haemonc_cancers_count" data-sortable="true" data-width="27" data-halign="center" data-align="right" data-valign="middle">HaemOnc<br>patient count</th>
-                                <th data-field="all_cancers_count" data-sortable="true" data-width="20" data-halign="center" data-align="right" data-valign="middle">All patient<br>count</th>
+                                <th data-field="haemonc_cancers_count" data-sortable="true" data-width="27" data-halign="center" data-align="right" data-valign="middle">HaemOnc<br>patient count*</th>
+                                <th data-field="all_cancers_count" data-sortable="true" data-width="20" data-halign="center" data-align="right" data-valign="middle">All cancers<br>patient count*</th>
                             </tr>
                         </thead>
                     </table>
@@ -103,20 +103,92 @@
 <script>
     var $table = $('#table-variants');
 
-    // Clear all filters
-    function resetSearch() {
-        $table.bootstrapTable('resetSearch');
+    
+    // Get variant extended row subtable ID.
+    function getVariantCancerTypesSubtableID(variantID) {
+        return `table-variant-cancer-types-${variantID}`
     }
+
+
+    // Initialise variant table.
+    $table.bootstrapTable({
+        // Populates extended row subtable on demand. Official bootstrap-table doc:
+        // https://bootstrap-table.com/docs/api/events/#onexpandrow
+        onExpandRow: function (index, row) {
+            // Get variant subtable ID and data url by variant db id.
+            let $subtable = $('#' + getVariantCancerTypesSubtableID(row.variant_id));
+            let url = `{% url 'main:ajax_variant_cancer_pcs' %}?variant_id=${row.variant_id}`;
+            
+            // Load variant cancer type patient counts subtable data using async request.
+            $.get(url).then(function (res) {
+                $subtable.bootstrapTable({
+                    data: res.rows,
+                    rowStyle: function (row, index) {
+                        if (row.cancer_type === 'All Cancers' || row.cancer_type === 'Haemonc Cancers') {
+                            return {
+                                classes: 'fw-bold'  // Make aggregated cancer types bold
+                            };
+                        }
+                        return {};
+                    }
+                })
+                
+                // Get all rows as array of objects.
+                const data = $subtable.bootstrapTable('getData');
+                // Get all visible columns.
+                const columns = $subtable.bootstrapTable('getVisibleColumns');
+                // Columns with no patients (zeroes) in all cancer types.
+                const zeroColumns = [];
+                // Columns to skip in zero-checks.
+                const skipFields = ['cancer_type', 'is_haemonc'];
+                
+                columns.forEach(column => {
+                    // Ignore non-numeric columns.
+                    if (skipFields.includes(column.field)) return;
+
+                    // Check if all values for this column are zero.
+                    const allZero = data.every(row => {
+                        const val = row[column.field];
+                        // Treat null/undefined as zero.
+                        return val === 0 || val === '0' || val === null || val === undefined;
+                    });
+                    // Add colum to the list of columns that are going to be hidden.
+                    if (allZero) zeroColumns.push(column.field);
+                });
+
+                // Hide the zero columns.
+                zeroColumns.forEach(field => {
+                    $subtable.bootstrapTable('hideColumn', field);                
+                })
+                // Show the subtable once it is fully ready.
+                $subtable.removeAttr('hidden');
+            });
+        }
+    })
+
+
+    // Clear all table filter controls.
+    function clearFilters() {
+        // Clear filters.
+        $table.bootstrapTable('clearFilterControl');
+        // Reload table data.
+        $table.bootstrapTable('filterBy', {});
+        // Update the displayed variant count.
+        updateVariantCount();
+    }
+
 
     // Update table variants (rows) count on the UI.
     function updateVariantCount() {
         $('#var-count-text').text($table.bootstrapTable('getOptions').totalRows.toLocaleString());
     }
 
+
     // Update table variants (rows) count after each table search.
     $table.on('search.bs.table', function (e, text) {
         updateVariantCount();
     });
+
 
     /**
      * Populates variant table with data. Official bootstrap-table doc:
@@ -152,9 +224,10 @@
         })
     }
 
+
     /**
      * Generates variant table row's detail view content - a sub-table with 
-     * HaemOnc cancer types patient counts. Official bootstrap-table doc:
+     * various cancer types patient counts. Official bootstrap-table doc:
      * https://bootstrap-table.com/docs/api/table-options/#detailformatter
      * 
      * @param {number} - Row index
@@ -162,31 +235,26 @@
      * @returns {string} - Row's detail view html
      */
     function detailFormatter(index, row) {
-        // If a variant does not have any HaemOnc patients then return
-        // an appropriate message
-        if (Object.keys(row.haemonc_pcs).length === 0) {
-            return 'No HaemOnc patients.'
-        }
-
-        // Otherwise, generate and return the sub-table with HaemOnc 
-        // cancer types patient counts.
-        var html = `
-            <table class="table table-sm w-auto">
-                <tr class="secondary">
-                    <th class="secondary" scope="col">HaemOnc cancer type</th>
-                    <th class="secondary" scope="col">Patient count</th>
-                </tr>
+        let var_cancer_types_table_id = getVariantCancerTypesSubtableID(row['variant_id'])
+        let html = `
+            <table id="${var_cancer_types_table_id}" 
+                class="table table-sm table-sm-font w-auto"
+                data-filter-control="true"
+                hidden
+            >
+                <thead>
+                    <tr class="secondary">
+                        <th class="align-middle" data-field="cancer_type" data-filter-control="input" data-halign="center" data-sortable="true" data-width="150">Cancer type</th>
+                        <th class="align-middle" data-field="is_haemonc" data-align="center" data-halign="center" data-sortable="true" data-width="50">HaemOnc</th>
+                        <th class="align-middle" data-field="same_nucleotide_change_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same nucleotide<br>change patient count</th>
+                        <th class="align-middle" data-field="same_amino_acid_change_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same amino acid change<br>patient count</th>
+                        <th class="align-middle" data-field="same_or_downstream_truncating_variants_per_cds_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same or downstream truncating <br>variants per CDS patient count</th>
+                        <th class="align-middle" data-field="nested_inframe_deletions_per_cds_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Nested inframe deletions<br>per CDS patient count</th>
+                        <th class="align-middle" data-field="cancer_n" data-halign="center" data-align="right" data-sortable="true" data-width="50">Total cancer<br>patient count</th>
+                    </tr>
+                </thead>
+            </table>
         `
-        for (const [key, value] of Object.entries(row.haemonc_pcs)) {
-            html += `
-                <tr>
-                    <td>${key}</td>
-                    <td style="text-align:right">${value}</td>
-                </tr>
-            `
-        }
-
-        html += '</table>'
         return html
     }
 </script>

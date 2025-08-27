@@ -1,4 +1,37 @@
+import pandas as pd
+from django.conf import settings
 from django.db import models
+
+def get_cancer_total_patient_counts() -> dict:
+    """
+    Get total patient count for each cancer type.
+    
+    Returns
+    -------
+    cancer_pcs: dict
+        A dictionary in which keys are VCF cancer type names and values
+        are total patient counts
+    """
+    cancer_pcs = {}
+    cancer_types_csv = settings.BASE_DIR / 'data/cancer_types.csv'
+    df = pd.read_csv(cancer_types_csv)
+    for index, row in df.iterrows():
+        cancer_pcs[row['vcf_name']] = row['total_patient_count']
+    return cancer_pcs
+
+CANCER_TOTAL_PATIENT_COUNTS = get_cancer_total_patient_counts()
+
+class CancerType(models.Model):
+    cancer_type = models.CharField(max_length=255)
+    cancer_type_vcf = models.CharField(max_length=255)
+    is_haemonc = models.BooleanField()
+    total_patient_count = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = 'main_cancer_type'
+
+    def __str__(self):
+        return self.cancer_type
 
 
 class Variant(models.Model):
@@ -14,11 +47,6 @@ class Variant(models.Model):
     2. All fields populated from the VCF INFO column must have 
     "help_text" whose values match the respective VCF INFO keys 
     (used in db_importer.py).
-
-    3. Fields displayed in the variant-table extended-row subtables must have
-    "verbose_name" in the format "{subtable_prefix}:{displayed name}" (used in
-    lookups.py:get_variants). So far the "PC_HaemOnc" prefix is used for
-    HaemOnc cancer patient counts.
     """
     chrom = models.CharField(max_length=100)
     pos = models.IntegerField()
@@ -39,99 +67,45 @@ class Variant(models.Model):
         help_text='OriginalContig', null=True)
     original_start = models.IntegerField(help_text='OriginalStart', null=True)
 
-    angiomatoid_fibrous_histiocytoma_count = models.IntegerField(
-        help_text='Angiomatoid_Fibrous_Histiocytoma_count',
-        verbose_name='PC_HaemOnc:Angiomatoid Fibrous Histiocytoma',
-        default=0)
-    b_lymphoblastic_leukemia_lymphoma_count = models.IntegerField(
-        help_text='B_Lymphoblastic_Leukemia_Lymphoma_count',
-        verbose_name='PC_HaemOnc:B Lymphoblastic Leukemia Lymphoma',
-        default=0)
-    blastic_plasmacytoid_dendritic_cell_neoplasm_count = models.IntegerField(
-        help_text='Blastic_Plasmacytoid_Dendritic_Cell_Neoplasm_count',
-        verbose_name='PC_HaemOnc:Blastic Plasmacytoid Dendritic Cell Neoplasm',
-        default=0)
-    blood_cancer_nos_count = models.IntegerField(
-        help_text='Blood_Cancer_NOS_count',
-        verbose_name='PC_HaemOnc:Blood Cancer NOS',
-        default=0)
-    blood_cancer_count = models.IntegerField(
-        help_text='Blood_Cancer_count',
-        verbose_name='PC_HaemOnc:Blood Cancer',
-        default=0)
-    histiocytosis_count = models.IntegerField(
-        help_text='Histiocytosis_count',
-        verbose_name='PC_HaemOnc:Histiocytosis',
-        default=0)
-    hodgkin_lymphoma_count = models.IntegerField(
-        help_text='Hodgkin_Lymphoma_count', 
-        verbose_name='PC_HaemOnc:Hodgkin Lymphoma',
-        default=0)
-    leukemia_count = models.IntegerField(
-        help_text='Leukemia_count',
-        verbose_name='PC_HaemOnc:Leukemia',
-        default=0)
-    lymphatic_cancer_nos_count = models.IntegerField(
-        help_text='Lymphatic_Cancer_NOS_count',
-        verbose_name='PC_HaemOnc:Lymphatic Cancer NOS',
-        default=0)
-    lymphatic_cancer_count = models.IntegerField(
-        help_text='Lymphatic_Cancer_count',
-        verbose_name='PC_HaemOnc:Lymphatic Cancer',
-        default=0)
-    mastocytosis_count = models.IntegerField(
-        help_text='Mastocytosis_count',
-        verbose_name='PC_HaemOnc:Mastocytosis',
-        default=0)
-    mature_b_cell_neoplasms_count = models.IntegerField(
-        help_text='Mature_B_Cell_Neoplasms_count',
-        verbose_name='PC_HaemOnc:Mature B Cell Neoplasms',
-        default=0)
-    mature_t_and_nk_neoplasms_count = models.IntegerField(
-        help_text='Mature_T_and_NK_Neoplasms_count',
-        verbose_name='PC_HaemOnc:Mature T and NK Neoplasms',
-        default=0)
-    myelodysplastic_myeloproliferative_neoplasms_count = models.IntegerField(
-        help_text='Myelodysplastic_Myeloproliferative_Neoplasms_count',
-        verbose_name='PC_HaemOnc:Myelodysplastic Myeloproliferative Neoplasms',
-        default=0)
-    myelodysplastic_syndromes_count = models.IntegerField(
-        help_text='Myelodysplastic_Syndromes_count',
-        verbose_name='PC_HaemOnc:Myelodysplastic Syndromes',
-        default=0)
-    myeloid_neoplasms_with_germ_line_predisposition_count = \
-        models.IntegerField(
-        help_text='Myeloid_Neoplasms_with_Germ_Line_Predisposition_count',
-        verbose_name='PC_HaemOnc:Myeloid Neoplasms with Germ Line Predisposition',
-        default=0)
-    myeloproliferative_neoplasms_count = models.IntegerField(
-        help_text='Myeloproliferative_Neoplasms_count',
-        verbose_name='PC_HaemOnc:Myeloproliferative Neoplasms',
-        default=0)
-    non_hodgkin_lymphoma_count = models.IntegerField(
-        help_text='Non_Hodgkin_Lymphoma_count',
-        verbose_name='PC_HaemOnc:Non Hodgkin Lymphoma',
-        default=0)
-    posttransplant_lymphoproliferative_disorders_count = models.IntegerField(
-        help_text='Posttransplant_Lymphoproliferative_Disorders_count',
-        verbose_name='PC_HaemOnc:Posttransplant Lymphoproliferative Disorders',
-        default=0)
-    t_lymphoblastic_leukemia_lymphoma_count = models.IntegerField(
-        help_text='T_Lymphoblastic_Leukemia_Lymphoma_count',
-        verbose_name='PC_HaemOnc:T Lymphoblastic Leukemia Lymphoma',
-        default=0)
-    all_cancers_count = models.IntegerField(
-        help_text='all_cancers_count',
-        default=0)
-    haemonc_cancers_count = models.IntegerField(
-        help_text='haemonc_cancers_count',
-        default=0)
+    # The following two fields store the same values as the 
+    # same_nucleotide_change_pc fields in VariantCancerTypePatientCount
+    # model but only for the aggregated cancer types ("All" and 
+    # "HaemOnc"). This is necessary to get main variant table data
+    # without perfromance expensive joins with the other model.
+    # N numbers for the VCF field names are obtained from the 
+    # cancer_types.csv to keep it the only source for this data.
+    all_cancers_count = models.PositiveIntegerField(default=0, 
+        help_text=('SameNucleotideChange_All_Cancers_Count_N_' 
+            + str(CANCER_TOTAL_PATIENT_COUNTS['All_Cancers'])))
+    haemonc_cancers_count = models.PositiveIntegerField(default=0, 
+        help_text=('SameNucleotideChange_Haemonc_Cancers_Count_N_' 
+            + str(CANCER_TOTAL_PATIENT_COUNTS['Haemonc_Cancers'])))
 
     class Meta:
         indexes = [
             models.Index(fields=['gene_symbol']),
             models.Index(fields=['chrom', 'pos']),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chrom', 'pos', 'ref', 'alt'],
+                name='uniq_variant_locus_allele',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.chrom}-{self.pos}-{self.ref}-{self.alt}"
+    
+
+class VariantCancerTypePatientCount(models.Model):
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
+    cancer_type = models.ForeignKey(CancerType, on_delete=models.CASCADE)
+
+    same_nucleotide_change_pc = models.PositiveIntegerField()
+    same_amino_acid_change_pc = models.PositiveIntegerField()
+    same_or_downstream_truncating_variants_per_cds_pc = \
+        models.PositiveIntegerField()
+    nested_inframe_deletions_per_cds_pc = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = 'main_variant_cancer_type_patient_count'
