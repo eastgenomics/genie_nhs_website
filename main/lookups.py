@@ -20,9 +20,10 @@ def get_variant_cancer_type_pcs(variant_id) -> list:
         counts subtable rows data.
     """
 
-    var_pc_cancers = VariantCancerTypePatientCount.objects.select_related()\
-        .filter(variant_id=variant_id)
-    
+    var_pc_cancers = (VariantCancerTypePatientCount.objects
+        .select_related('cancer_type').filter(variant_id=variant_id)
+    )
+
     data = []
     for var_pc_cancer in var_pc_cancers:
         if var_pc_cancer.cancer_type.is_haemonc:

@@ -15,7 +15,7 @@ from django.db.models import NOT_PROVIDED
 from main.models import CancerType, Variant
 from main.utils import get_worst_csq_display_term
 
-# VCF cancer patient count INFO field prefixes and their respecive 
+# VCF cancer patient count INFO field prefixes and their respective 
 # VariantCancerTypePatientCount model field names
 CANCER_PC_PREFIXES = {
     'SameNucleotideChange': 'same_nucleotide_change_pc',
@@ -88,7 +88,7 @@ def import_cancer_types(db) -> None:
         cancer_type = CancerType(
             cancer_type=row['display_name'],
             cancer_type_vcf=row['vcf_name'],
-            is_haemonc=bool(row['is_haemonc']),
+            is_haemonc=bool(int(row['is_haemonc'])),
             total_patient_count=int(row['total_patient_count'])
         )
         cancer_types.append(cancer_type)
@@ -159,8 +159,10 @@ def import_vcf_variants(db) -> None:
 
         Parameters
         ----------
-        batch_data : list
-            A list of variant table rows (lists).
+        var_batch_data : list
+            List of main_variant rows (lists).
+        cancer_pc_batch_data : list
+            List of main_variant_cancer_type_patient_count rows (lists).
 
         Returns
         -------
@@ -209,12 +211,13 @@ def import_vcf_variants(db) -> None:
         cancer_type_ids[cancer.cancer_type_vcf] = cancer.id
 
     # A counter used as database variant IDs for foreign key insertion.
-    # Although it is genrally not a good idea to process foreign keys
+    # Although it is generally not a good idea to process foreign keys
     # independently from the source table, it is safe to do so in this
     # case. This function truncates variant table and resets its
-    # priamry key, so variant counter will correspond to variant id. 
+    # primary key, so variant counter will correspond to variant id. 
     var_id = 1
-    with gzip.open(settings.GENIE_VCF, mode='rt') as f:
+    with gzip.open(settings.GENIE_VCF, mode='rt', encoding='utf-8', 
+            newline='') as f:
         reader = csv.reader(f, delimiter='\t')
 
         # Loop through the VCF file rows.
@@ -278,6 +281,9 @@ def import_vcf_variants(db) -> None:
             # VCF in the same order as the model attribute names in the 
             # SQL query. The first item is "None" for the auto-generated ID.
             for cancer, pcs in var_cancer_pcs.items():
+                if cancer not in cancer_type_ids:
+                    sys.exit(f'Unknown cancer type in VCF: "{cancer}". '
+                             'Ensure it exists in data/cancer_types.csv')
                 db_row = [None, var_id, cancer_type_ids[cancer]] + \
                     list(pcs.values())
                 cancer_pc_batch_data.append(db_row)
