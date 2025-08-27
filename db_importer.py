@@ -84,7 +84,7 @@ def import_cancer_types(db) -> None:
     df = pd.read_csv(cancer_types_csv)
 
     cancer_types = []
-    for index, row in df.iterrows():
+    for _index, row in df.iterrows():
         cancer_type = CancerType(
             cancer_type=row['display_name'],
             cancer_type_vcf=row['vcf_name'],
@@ -117,22 +117,26 @@ def import_vcf_variants(db) -> None:
     # Get database cursor
     cur = db.cursor()
     # Enable foreign key checks
-    cur.execute(f"PRAGMA foreign_keys = ON;")
+    cur.execute("PRAGMA foreign_keys = ON;")
     db.commit()
     
     # Delete all previous variant and variant cancer type patient count records.
     truncate_table(db, 'main_variant_cancer_type_patient_count')
     truncate_table(db, 'main_variant')
 
-    # The first 5 variant model fields are ("id", "chrom", "pos", 
-    # "ref", and "alt") are populated from non-INFO VCF fields.
-    info_fields = Variant._meta.get_fields()[5:]
+    # "id", "chrom", "pos", "ref", and "alt" variant model fields
+    #  are populated from non-INFO VCF fields.
+    info_fields = [
+        f for f in Variant._meta.concrete_fields
+        if f.attname not in ('id', 'chrom', 'pos', 'ref', 'alt')
+    ]
 
     # Create an SQL queries with variant table column names and
     # CANCER_PC_PREFIXES keys/values to ensure that the data is inserted
     # into the right columns.
-    var_sql_column_names = ', '.join(['id', 'chrom', 'pos', 'ref', 'alt']
-        + [f.attname for f in info_fields])
+    var_sql_column_names = ', '.join(
+        ['id', 'chrom', 'pos', 'ref', 'alt'] + [f.attname for f in info_fields]
+    )
     var_sql_column_values = ', '.join(['?'] * (5 + len(info_fields)))
     var_sql_query = (f'INSERT INTO main_variant ({var_sql_column_names}) '
                  f'VALUES ({var_sql_column_values})')
@@ -163,8 +167,8 @@ def import_vcf_variants(db) -> None:
         None
         """
         try:
+            cur.execute('BEGIN')
             cur.executemany(var_sql_query, var_batch_data)
-            db.commit()
             cur.executemany(var_cancer_pc_sql_query, cancer_pc_batch_data)
             db.commit()
         except Exception as e:

@@ -47,7 +47,6 @@
                         data-toggle="table"
                         data-detail-view="true"
                         data-detail-formatter="detailFormatter"
-                        data-sortable="true"
                         data-sort-name="pos"
                         data-search="true"
                         data-search-align="left"
@@ -120,48 +119,52 @@
             let url = `{% url 'main:ajax_variant_cancer_pcs' %}?variant_id=${row.variant_id}`;
             
             // Load variant cancer type patient counts subtable data using async request.
-            $.get(url).then(function (res) {
-                $subtable.bootstrapTable({
-                    data: res.rows,
-                    rowStyle: function (row, index) {
-                        if (row.cancer_type === 'All Cancers' || row.cancer_type === 'Haemonc Cancers') {
-                            return {
-                                classes: 'fw-bold'  // Make aggregated cancer types bold
-                            };
+            $.get(url)
+                .done(function (res) {
+                    $subtable.bootstrapTable({
+                        data: res.rows,
+                        rowStyle: function (row, index) {
+                            if (row.cancer_type === 'All Cancers' || row.cancer_type === 'Haemonc Cancers') {
+                                return {
+                                    classes: 'fw-bold'  // Make aggregated cancer types bold
+                                };
+                            }
+                            return {};
                         }
-                        return {};
-                    }
-                })
-                
-                // Get all rows as array of objects.
-                const data = $subtable.bootstrapTable('getData');
-                // Get all visible columns.
-                const columns = $subtable.bootstrapTable('getVisibleColumns');
-                // Columns with no patients (zeroes) in all cancer types.
-                const zeroColumns = [];
-                // Columns to skip in zero-checks.
-                const skipFields = ['cancer_type', 'is_haemonc'];
-                
-                columns.forEach(column => {
-                    // Ignore non-numeric columns.
-                    if (skipFields.includes(column.field)) return;
+                    })
+                    
+                    // Get all rows as array of objects.
+                    const data = $subtable.bootstrapTable('getData');
+                    // Get all visible columns.
+                    const columns = $subtable.bootstrapTable('getVisibleColumns');
+                    // Columns with no patients (zeroes) in all cancer types.
+                    const zeroColumns = [];
+                    // Columns to skip in zero-checks.
+                    const skipFields = ['cancer_type', 'is_haemonc'];
+                    
+                    columns.forEach(column => {
+                        // Ignore non-numeric columns.
+                        if (skipFields.includes(column.field)) return;
 
-                    // Check if all values for this column are zero.
-                    const allZero = data.every(row => {
-                        const val = row[column.field];
-                        // Treat null/undefined as zero.
-                        return val === 0 || val === '0' || val === null || val === undefined;
+                        // Check if all values for this column are zero.
+                        const allZero = data.every(row => {
+                            const val = row[column.field];
+                            // Treat null/undefined as zero.
+                            return val === 0 || val === '0' || val === null || val === undefined;
+                        });
+                        // Add colum to the list of columns that are going to be hidden.
+                        if (allZero) zeroColumns.push(column.field);
                     });
-                    // Add colum to the list of columns that are going to be hidden.
-                    if (allZero) zeroColumns.push(column.field);
-                });
 
-                // Hide the zero columns.
-                zeroColumns.forEach(field => {
-                    $subtable.bootstrapTable('hideColumn', field);                
+                    // Hide the zero columns.
+                    zeroColumns.forEach(field => {
+                        $subtable.bootstrapTable('hideColumn', field);                
+                    })
+                    // Show the subtable once it is fully ready.
+                    $subtable.removeAttr('hidden');
                 })
-                // Show the subtable once it is fully ready.
-                $subtable.removeAttr('hidden');
+            .fail(function (xhr, status, err) {
+                console.error('Failed to load cancer-type counts:', status || err);
             });
         }
     })
@@ -180,7 +183,8 @@
 
     // Update table variants (rows) count on the UI.
     function updateVariantCount() {
-        $('#var-count-text').text($table.bootstrapTable('getOptions').totalRows.toLocaleString());
+        const currentCount = $table.bootstrapTable('getData').length;
+        $('#var-count-text').text(currentCount.toLocaleString());
     }
 
 
@@ -200,28 +204,33 @@
      */
     function ajaxRequest(params) {
         // Ajax url and search value are obtained from the backend.
-        let url = '{{ variant_data_url|safe }}';
-        let search_value = '{{ search_value }}';
+        let url = '{{ variant_data_url|escapejs }}';
+        let search_value = '{{ search_value|escapejs }}';
 
         // Add any additional bootstrap-table parameters to the ajax
         // request and load variant table data.
-        $.get(url + '&' + $.param(params.data)).then(function (res) {
-            params.success(res);
-            // If no variants were found for the provided search params,
-            // update the "Looking for variant data..." message.
-            if (res.total === 0) {
-                $('#div-table-variants-no-data-message').text(`No variants were found for "${search_value}"`);
-                if (res.error !== '') {
-                    console.log(`Failed to process the variant query: "${res.error}"`)
+        const sep = url.includes('?') ? '&' : '?';
+        $.get(url + sep + $.param(params.data))
+            .done(function (res) {
+                params.success(res);
+                // If no variants were found for the provided search params,
+                // update the "Looking for variant data..." message.
+                if (res.total === 0) {
+                    $('#div-table-variants-no-data-message').text(`No variants were found for "${search_value}"`);
+                    if (res.error !== '') {
+                        console.log(`Failed to process the variant query: "${res.error}"`)
+                    }
+                } else {
+                    // Otherwise, hide the message, show the table, 
+                    // and update the displayed variants count.
+                    document.getElementById('div-table-variants').removeAttribute("hidden");
+                    document.getElementById('div-table-variants-no-data-message').setAttribute("hidden", "hidden");
+                    updateVariantCount();
                 }
-            } else {
-                // Otherwise, hide the message, show the table, 
-                // and update the displayed variants count.
-                document.getElementById('div-table-variants').removeAttribute("hidden");
-                document.getElementById('div-table-variants-no-data-message').setAttribute("hidden", "hidden");
-                updateVariantCount();
-            }
-        })
+            })
+            .fail(function (xhr, status, err) {
+                console.error('Failed to load variants:', status || err);
+            });
     }
 
 

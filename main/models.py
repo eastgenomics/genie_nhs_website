@@ -15,7 +15,7 @@ def get_cancer_total_patient_counts() -> dict:
     cancer_pcs = {}
     cancer_types_csv = settings.BASE_DIR / 'data/cancer_types.csv'
     df = pd.read_csv(cancer_types_csv)
-    for index, row in df.iterrows():
+    for _index, row in df.iterrows():
         cancer_pcs[row['vcf_name']] = row['total_patient_count']
     return cancer_pcs
 

@@ -70,8 +70,8 @@ def get_variants(search_key: str, search_value: str) -> list:
     # return an empty list if the search key is anything else.
     variants = []
     if search_key == 'gene':
-        db_variants = Variant.objects.select_related()\
-            .filter(gene_symbol=search_value).order_by('pos')
+        db_variants = Variant.objects.filter(
+            gene_symbol=search_value).order_by('pos')
     elif search_key == 'region':
         # Region format: {chrom}:{start_pos}-{end_pos}
         # Position format: {chrom}:{pos}
@@ -81,9 +81,9 @@ def get_variants(search_key: str, search_value: str) -> list:
                 start_pos, end_pos = poses.split('-')
             else:
                 start_pos = end_pos = poses
-            db_variants = Variant.objects.select_related()\
-                .filter(chrom=chrom, pos__gte=int(start_pos), 
-                        pos__lte=int(end_pos)).order_by('pos')
+            db_variants = Variant.objects.filter(
+                chrom=chrom, pos__gte=int(start_pos), pos__lte=int(end_pos)
+            ).order_by('pos')
         except (ValueError, TypeError):
             # Return empty list for malformed input
             return variants
