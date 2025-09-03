@@ -67,6 +67,10 @@ def get_variants(search_key: str, search_value: str) -> list:
         A list of variant dictionaries which stores variant table rows data.
     """
 
+    def _format_hgvs(hgvs):
+        """Split joined HGVS descriptions."""
+        return hgvs.replace('&', ', ') if hgvs else hgvs
+    
     # Search the database variant table by gene name or region/pos and
     # return an empty list if the search key is anything else.
     variants = []
@@ -90,10 +94,6 @@ def get_variants(search_key: str, search_value: str) -> list:
             return variants
     else:
         return variants
-
-    def _format_hgvs(hgvs):
-        """Split joined HGVS descriptions."""
-        return hgvs.replace('&', ', ') if hgvs else hgvs
 
     for db_variant in db_variants:
         # Construct variant dict which keys matches variant table 

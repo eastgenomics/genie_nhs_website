@@ -66,8 +66,12 @@ def variants(request):
     search_key = request.GET.get('search_key', '')
     search_value = request.GET.get('search_value', '')
     context_dict = {
-        'search_value': search_value,
-        'variant_data_url': reverse('main:ajax_variants') + \
-            f'?search_key={search_key}&search_value={search_value}'
+        'page_context': {
+            'search_value': search_value,
+            'variants_data_url': reverse('main:ajax_variants') + \
+                f'?search_key={search_key}&search_value={search_value}',
+            'variant_cancer_patient_counts_url': \
+                reverse('main:ajax_variant_cancer_pcs'),            
+        },
     }
     return render(request, 'main/variants.html', context=context_dict)
