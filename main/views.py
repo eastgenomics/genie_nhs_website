@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import JsonResponse
@@ -28,8 +30,8 @@ def search_view(request):
         search_key = 'region'
     else:
         search_key = 'gene'
-    url = reverse('main:variants') + \
-        f'?search_key={search_key}&search_value={search_value}'
+    query = urlencode({'search_key': search_key, 'search_value': search_value})
+    url = f"{reverse('main:variants')}?{query}"
     
     # Redirect to the appropriate page.
     return redirect(url)
@@ -65,11 +67,11 @@ def variants(request):
     """Variants table page, data is loaded via an ajax request."""
     search_key = request.GET.get('search_key', '')
     search_value = request.GET.get('search_value', '')
+    query = urlencode({'search_key': search_key, 'search_value': search_value})
     context_dict = {
         'page_context': {
             'search_value': search_value,
-            'variants_data_url': reverse('main:ajax_variants') + \
-                f'?search_key={search_key}&search_value={search_value}',
+            'variants_data_url': (f"{reverse('main:ajax_variants')}?{query}"),
             'variant_cancer_patient_counts_url': \
                 reverse('main:ajax_variant_cancer_pcs'),            
         },

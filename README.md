@@ -17,7 +17,7 @@ SECRET_KEY
 PORT
 # Web server address
 ALLOWED_HOSTS
-# Path to a folder with Genie VCF file
+# Path to a folder with Genie VCF file and cancer types csv
 DATA_FOLDER
 # Genie VCF file name
 GENIE_VCF
@@ -61,5 +61,5 @@ CSRF_TRUSTED_ORIGINS
     ```
 * Build and run the docker container, and re-seed the database:
     ```bash
-    docker compose --profile reset up --build
+    docker compose --profile db-reset up --build
     ```

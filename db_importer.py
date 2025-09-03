@@ -58,6 +58,16 @@ def truncate_table(db, table_name):
     None
     """
     cur = db.cursor()
+
+    # Safety: restrict to known tables only.
+    allowed = {
+        'main_variant',
+        'main_variant_cancer_type_patient_count',
+        'main_cancer_type',
+    }
+    if table_name not in allowed:
+        sys.exit(f'Unsafe table name: {table_name}')
+
     # Truncate table (DELETE without WHERE = TRUNCATE in SQLite).
     cur.execute(f"DELETE FROM {table_name}")
     # Reset table primary key.
@@ -254,7 +264,7 @@ def import_vcf_variants(db) -> None:
             # Construct a variant row with values from the VCF in the
             # same order as the model attribute names in the SQL query.
             # The first item is "None" for the auto-generated ID.
-            db_row = [None, chrom, pos, ref, alt]
+            db_row = [var_id, chrom, pos, ref, alt]
             for f in info_fields:
                 # Get VCF INFO fields name from the variant model help text.
                 val = info_dict.get(f.help_text, None)

@@ -1,5 +1,3 @@
-import pandas as pd
-from django.conf import settings
 from django.db import models
 
 
@@ -17,10 +15,9 @@ class CancerType(models.Model):
 
 
 class Variant(models.Model):
-    """The main (and only) database table, populated with data
-    from the transformed GENIE VCF file. To keep field-name-related
-    info in one place (here), the following conventions are established
-    and MUST be maintained.
+    """The main database table, populated with data from the transformed
+    GENIE VCF file. To keep field-name-related info in one place (here), 
+    the following conventions are established and MUST be maintained.  
 
     1. The first four model attributes must be chrom, pos, ref, and alt
     in that order. This can be changed, but it will require an update 
@@ -32,7 +29,7 @@ class Variant(models.Model):
     stored without the "_Count_N" ending.
     """
     chrom = models.CharField(max_length=100)
-    pos = models.IntegerField()
+    pos = models.PositiveIntegerField()
     ref = models.TextField()
     alt = models.TextField()
 
@@ -54,23 +51,23 @@ class Variant(models.Model):
     # same_nucleotide_change_pc fields in VariantCancerTypePatientCount
     # model but only for the aggregated cancer types ("All" and 
     # "HaemOnc"). This is necessary to get main variant table data
-    # without perfromance expensive joins with the other model.
+    # without performance expensive joins with the other model.
     all_cancers_count = models.PositiveIntegerField(default=0, 
         help_text=('SameNucleotideChange_All_Cancers'))
     haemonc_cancers_count = models.PositiveIntegerField(default=0, 
         help_text=('SameNucleotideChange_Haemonc_Cancers'))
 
     class Meta:
-        indexes = [
+        indexes = (
             models.Index(fields=['gene_symbol']),
             models.Index(fields=['chrom', 'pos']),
-        ]
-        constraints = [
+        )
+        constraints = (
             models.UniqueConstraint(
                 fields=['chrom', 'pos', 'ref', 'alt'],
                 name='uniq_variant_locus_allele',
             ),
-        ]
+        )
 
     def __str__(self):
         return f"{self.chrom}-{self.pos}-{self.ref}-{self.alt}"

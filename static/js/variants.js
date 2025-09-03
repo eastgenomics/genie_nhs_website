@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Load context variables from the variant.html embeded js.
+    // Load context variables from the variant.html embedded js.
     const context = JSON.parse(document.getElementById('page-context').textContent);
 
 
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // Initialise variant table.
-    var $table = $('#table-variants');
+    const $table = $('#table-variants');
     $table.bootstrapTable({
         ajax: ajaxRequest,
         detailView: true,
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             // Treat null/undefined as zero.
                             return val === 0 || val === '0' || val === null || val === undefined;
                         });
-                        // Add colum to the list of columns that are going to be hidden.
+                        // Add column to the list of columns that are going to be hidden.
                         if (allZero) zeroColumns.push(column.field);
                     });
 
@@ -86,6 +86,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
+    // Clear filters when user clicks on the button.
+    $('#clear-filters-btn').on('click', clearFilters);
+
+
     // Update table variants (rows) count on the UI.
     function updateVariantCount() {
         const currentCount = $table.bootstrapTable('getData').length;
@@ -103,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
      * Populates variant table with data. Official bootstrap-table doc:
      * https://bootstrap-table.com/docs/api/table-options/#ajax
      *  
-     * @param {Object} - An object with additional bootsrap-table ajax 
+     * @param {Object} - An object with additional bootstrap-table ajax 
      *                   request params (e.g. sort order).
      * @returns {void}
      */
@@ -134,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             })
             .fail(function (xhr, status, err) {
-                console.error('Failed to load variants:', status || err);
+                console.error('Failed to load cancer-type counts:', xhr.status, status || err);
             });
     }
 
