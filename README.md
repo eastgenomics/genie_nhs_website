@@ -21,6 +21,8 @@ ALLOWED_HOSTS
 DATA_FOLDER
 # Genie VCF file name
 GENIE_VCF
+# Genie cancer types csv - contains VCF & display cancer type names, groups (e.g. HaemOnc), and total patient counts
+GENIE_CANCER_TYPES_CSV
 # CSRF trusted origins (Optional, derived from ALLOWED_HOSTS unless explicitly provided)
 CSRF_TRUSTED_ORIGINS
 ```

@@ -78,20 +78,23 @@ def import_cancer_types(db) -> None:
     -------
     None
     """
+
+    if not settings.GENIE_CANCER_TYPES_CSV.is_file():
+        sys.exit(('DB reset was cancelled; Genie cancer types csv file '
+            'was not found:\n') + str(settings.GENIE_CANCER_TYPES_CSV))
+        
     truncate_table(db, 'main_cancer_type')
     
-    cancer_types_csv = settings.BASE_DIR / 'data/cancer_types.csv'
-    df = pd.read_csv(cancer_types_csv)
-
-    cancer_types = []
-    for _index, row in df.iterrows():
-        cancer_type = CancerType(
+    df = pd.read_csv(settings.GENIE_CANCER_TYPES_CSV)
+    cancer_types = df.apply(
+        lambda row: CancerType(
             cancer_type=row['display_name'],
             cancer_type_vcf=row['vcf_name'],
             is_haemonc=bool(int(row['is_haemonc'])),
             total_patient_count=int(row['total_patient_count'])
-        )
-        cancer_types.append(cancer_type)
+        ),
+        axis=1
+    ).tolist()
     CancerType.objects.bulk_create(cancer_types)
 
 
@@ -238,6 +241,10 @@ def import_vcf_variants(db) -> None:
             for info_item in row[7].split(';'):
                 if '=' in info_item:
                     key, val = info_item.split('=', 1)
+                    # Remove total patient count ending which can vary
+                    # in different Genie VCF versions.
+                    if key.startswith(tuple(CANCER_PC_PREFIXES.keys())):
+                        key = key.split('_Count_')[0]
                     info_dict[key] = val
 
                     if key == 'Consequence':
@@ -270,8 +277,7 @@ def import_vcf_variants(db) -> None:
                 # following format:
                 # {COUNT_TYPE}_{CANCER_TYPE}_Count_N_{TOTAL_PATIENT_COUNT}
                 if key.startswith(tuple(CANCER_PC_PREFIXES.keys())):
-                    pc_type_vcf, cancer_type_vcf = \
-                        key.split('_Count_')[0].split('_', 1)
+                    pc_type_vcf, cancer_type_vcf = key.split('_', 1)
                     if cancer_type_vcf not in var_cancer_pcs:
                         var_cancer_pcs[cancer_type_vcf] = dict(CANCER_PC_DICT)
                     pc_type = CANCER_PC_PREFIXES[pc_type_vcf]

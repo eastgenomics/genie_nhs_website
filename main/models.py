@@ -2,24 +2,6 @@ import pandas as pd
 from django.conf import settings
 from django.db import models
 
-def get_cancer_total_patient_counts() -> dict:
-    """
-    Get total patient count for each cancer type.
-    
-    Returns
-    -------
-    cancer_pcs: dict
-        A dictionary in which keys are VCF cancer type names and values
-        are total patient counts
-    """
-    cancer_pcs = {}
-    cancer_types_csv = settings.BASE_DIR / 'data/cancer_types.csv'
-    df = pd.read_csv(cancer_types_csv)
-    for _index, row in df.iterrows():
-        cancer_pcs[row['vcf_name']] = row['total_patient_count']
-    return cancer_pcs
-
-CANCER_TOTAL_PATIENT_COUNTS = get_cancer_total_patient_counts()
 
 class CancerType(models.Model):
     cancer_type = models.CharField(max_length=255)
@@ -46,7 +28,8 @@ class Variant(models.Model):
 
     2. All fields populated from the VCF INFO column must have 
     "help_text" whose values match the respective VCF INFO keys 
-    (used in db_importer.py).
+    (used in db_importer.py). Aggregated cancer types field names are 
+    stored without the "_Count_N" ending.
     """
     chrom = models.CharField(max_length=100)
     pos = models.IntegerField()
@@ -72,14 +55,10 @@ class Variant(models.Model):
     # model but only for the aggregated cancer types ("All" and 
     # "HaemOnc"). This is necessary to get main variant table data
     # without perfromance expensive joins with the other model.
-    # N numbers for the VCF field names are obtained from the 
-    # cancer_types.csv to keep it the only source for this data.
     all_cancers_count = models.PositiveIntegerField(default=0, 
-        help_text=('SameNucleotideChange_All_Cancers_Count_N_' 
-            + str(CANCER_TOTAL_PATIENT_COUNTS['All_Cancers'])))
+        help_text=('SameNucleotideChange_All_Cancers'))
     haemonc_cancers_count = models.PositiveIntegerField(default=0, 
-        help_text=('SameNucleotideChange_Haemonc_Cancers_Count_N_' 
-            + str(CANCER_TOTAL_PATIENT_COUNTS['Haemonc_Cancers'])))
+        help_text=('SameNucleotideChange_Haemonc_Cancers'))
 
     class Meta:
         indexes = [
