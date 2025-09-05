@@ -20,6 +20,7 @@
     --nhs-orange: #ED8B00;
     --nhs-warm-yellow: #FFB81C;
     --nhs-yellow: #FAE100;
+    --nhs-white: #FFFFFF;
 }
 
 html, body {
@@ -29,12 +30,14 @@ html, body {
 body {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
     background-color: var(--nhs-pale-grey);
 }
 
 footer {
-    background-color: white;
+    margin-top: auto;
+    background-color: var(--nhs-white);
 }
 
 footer p {
@@ -44,7 +47,10 @@ footer p {
 }
 
 footer img {
-    height: 80px;
+    height: auto;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
 }
 
 .primary-link {
@@ -149,7 +155,7 @@ footer img {
 
 tr.primary {
     background-color: var(--nhs-bright-blue);
-    color: white;
+    color: var(--nhs-white);
 }
 
 tr.secondary,
@@ -157,7 +163,7 @@ tr.secondary:hover,
 th.secondary,
 td.secondary {
     background-color: var(--nhs-dark-grey);
-    color: white;
+    color: var(--nhs-white);
 }
 
 tr.secondary th,
@@ -165,7 +171,7 @@ tr.secondary td,
 th.secondary,
 td.secondary {
     text-align: center;
-    border: 1px solid white;
+    border: 1px solid var(--nhs-white);
     padding-right: 10px;
     padding-left: 10px;
 }

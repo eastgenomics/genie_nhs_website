@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return `table-variant-cancer-types-${variantID}`
     }
 
-    // Aggreagted cancer types
+    // Aggregated cancer types
     const AGG_CANCER_TYPES = new Set(['All Cancers', 'Haemonc Cancers', 'Solid Cancers']);
 
     // Initialise variant table.
