@@ -30,8 +30,7 @@ html, body {
 body {
     display: flex;
     flex-direction: column;
-    min-height: 100svh;
-    min-height: 100dvh;
+    min-height: 100vh;
     background-color: var(--nhs-pale-grey);
 }
 
