@@ -1,7 +1,9 @@
 from main.models import CancerType, Variant, VariantCancerTypePatientCount
 from main.utils import get_worst_csq_display_term
+from functools import lru_cache
 
 
+@lru_cache(maxsize=1)
 def get_ordered_cancer_types() -> dict:
     """
     Get cancer type order for sorting with the aggregated cancer types 
@@ -9,25 +11,18 @@ def get_ordered_cancer_types() -> dict:
 
     Returns
     -------
-    dict
+    ordered_cancer_types: dict
         A dictionary with cancer type names (keys) and their order (values).
     """
-    top_cancer_types = {
-        'All Cancers': 1,
-        'Haemonc Cancers': 2,
-        'Solid Cancers': 3,
+    
+    cancer_types = CancerType.objects.values_list('cancer_type', flat=True)\
+        .order_by('cancer_type')
+    agg_cancer_types = ['All Cancers', 'Haemonc Cancers', 'Solid Cancers']
+    cancer_types = [ct for ct in cancer_types if ct not in agg_cancer_types]
+    ordered_cancer_types = {
+        item: rank for rank, item in enumerate(agg_cancer_types + cancer_types)
     }
-    cancer_types = []
-    for item in CancerType.objects.all():
-        if item.cancer_type not in top_cancer_types:
-            cancer_types.append(item.cancer_type)
-    ranked_cancer_types = {
-        item: rank for rank, item in enumerate(cancer_types, start=4)
-    }
-    return top_cancer_types | ranked_cancer_types
-
-
-ORDERED_CANCER_TYPES = get_ordered_cancer_types()
+    return ordered_cancer_types
 
 
 def get_variant_cancer_type_pcs(variant_id) -> list:
@@ -63,7 +58,7 @@ def get_variant_cancer_type_pcs(variant_id) -> list:
         cancer_type = var_pc_cancer.cancer_type.cancer_type
         row = {
             'cancer_type': cancer_type,
-            'cancer_type_order': ORDERED_CANCER_TYPES[cancer_type],
+            'cancer_type_order': get_ordered_cancer_types()[cancer_type],
             'category': category,
             'same_nucleotide_change_pc': \
                 var_pc_cancer.same_nucleotide_change_pc,
@@ -108,7 +103,7 @@ def get_variants(search_key: str, search_value: str) -> list:
         new_hgvs = []
         for hgvs in hgvs_str.split('&'):
             # Add parentheses to HGVSp descriptions.
-            if 'p.' in hgvs:
+            if 'p.' in hgvs and 'p.(' not in hgvs:
                 hgvs = f"p.({hgvs.split('p.')[1]})"
             new_hgvs.append(hgvs)
         return ', '.join(new_hgvs)

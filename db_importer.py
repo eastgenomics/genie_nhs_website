@@ -97,6 +97,18 @@ def import_cancer_types(db) -> None:
     truncate_table(db, 'main_cancer_type')
     
     df = pd.read_csv(settings.GENIE_CANCER_TYPES_CSV)
+
+    required_cols = {
+        'display_name',
+        'vcf_name',
+        'is_haemonc',
+        'is_solid',
+        'total_patient_count'
+    }
+    missing = required_cols - set(df.columns)
+    if missing:
+        sys.exit(f'Cancer types CSV missing columns: {", ".join(missing)}')
+
     cancer_types = df.apply(
         lambda row: CancerType(
             cancer_type=row['display_name'],
@@ -332,11 +344,11 @@ def reset_db():
     -------
     None
     """
-    start = time.time()
+    start = time.perf_counter()
     db = get_db()
     import_cancer_types(db)
     import_vcf_variants(db)
-    end = time.time()
+    end = time.perf_counter()
     print('Successfully re-populated the database.')
     print(f'Execution time: {end - start:.2f} seconds')
     db.close()

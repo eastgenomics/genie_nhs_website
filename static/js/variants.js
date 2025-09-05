@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return `table-variant-cancer-types-${variantID}`
     }
 
+    // Aggreagted cancer types
+    const AGG_CANCER_TYPES = new Set(['All Cancers', 'Haemonc Cancers', 'Solid Cancers']);
 
     // Initialise variant table.
     const $table = $('#table-variants');
@@ -29,8 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     $subtable.bootstrapTable({
                         data: res.rows,
                         rowStyle: function (row, index) {
-                            const aggCancerTypes = ['All Cancers', 'Haemonc Cancers', 'Solid Cancers'];
-                            if (aggCancerTypes.includes(row.cancer_type)) {
+                            if (AGG_CANCER_TYPES.has(row.cancer_type)) {
                                 return {
                                     classes: 'fw-bold'  // Make aggregated cancer types bold
                                 };
