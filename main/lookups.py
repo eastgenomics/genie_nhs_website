@@ -118,7 +118,7 @@ def get_variants(search_key: str, search_value: str) -> list:
     variants = []
     if search_key == 'gene':
         db_variants = Variant.objects.filter(
-            gene_symbol=search_value).order_by('pos')
+            gene_symbol__iexact=search_value).order_by('pos')
     elif search_key == 'region':
         # Region format: {chrom}:{start_pos}-{end_pos}
         # Position format: {chrom}:{pos}
