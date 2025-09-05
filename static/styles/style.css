@@ -23,8 +23,29 @@
     --nhs-white: #FFFFFF;
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     background-color: var(--nhs-pale-grey);
+}
+
+footer {
+    background-color: white;
+}
+
+footer p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 0;
+}
+
+footer img {
+    height: 80px;
 }
 
 .primary-link {
