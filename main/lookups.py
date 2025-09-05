@@ -1,5 +1,33 @@
-from main.models import Variant, VariantCancerTypePatientCount
+from main.models import CancerType, Variant, VariantCancerTypePatientCount
 from main.utils import get_worst_csq_display_term
+
+
+def get_ordered_cancer_types() -> dict:
+    """
+    Get cancer type order for sorting with the aggregated cancer types 
+    at the top.
+
+    Returns
+    -------
+    dict
+        A dictionary with cancer type names (keys) and their order (values).
+    """
+    top_cancer_types = {
+        'All Cancers': 1,
+        'Haemonc Cancers': 2,
+        'Solid Cancers': 3,
+    }
+    cancer_types = []
+    for item in CancerType.objects.all():
+        if item.cancer_type not in top_cancer_types:
+            cancer_types.append(item.cancer_type)
+    ranked_cancer_types = {
+        item: rank for rank, item in enumerate(cancer_types, start=4)
+    }
+    return top_cancer_types | ranked_cancer_types
+
+
+ORDERED_CANCER_TYPES = get_ordered_cancer_types()
 
 
 def get_variant_cancer_type_pcs(variant_id) -> list:
@@ -27,12 +55,16 @@ def get_variant_cancer_type_pcs(variant_id) -> list:
     data = []
     for var_pc_cancer in var_pc_cancers:
         if var_pc_cancer.cancer_type.is_haemonc:
-            is_haemonc = '&#9989;' # Tick
+            category = 'HaemOnc'
+        elif var_pc_cancer.cancer_type.is_solid:
+            category = 'Solid'
         else:
-            is_haemonc = '&#10060;' # Cross
+            category = 'Other'
+        cancer_type = var_pc_cancer.cancer_type.cancer_type
         row = {
-            'cancer_type': var_pc_cancer.cancer_type.cancer_type,
-            'is_haemonc': is_haemonc,
+            'cancer_type': cancer_type,
+            'cancer_type_order': ORDERED_CANCER_TYPES[cancer_type],
+            'category': category,
             'same_nucleotide_change_pc': \
                 var_pc_cancer.same_nucleotide_change_pc,
             'same_amino_acid_change_pc': \
@@ -108,6 +140,7 @@ def get_variants(search_key: str, search_value: str) -> list:
             'gene': db_variant.gene_symbol,
             'refseq_transcript': db_variant.refseq_transcript,
             'haemonc_cancers_count': db_variant.haemonc_cancers_count,
+            'solid_cancers_count': db_variant.solid_cancers_count,
             'all_cancers_count': db_variant.all_cancers_count,
         }
         variants.append(variant)

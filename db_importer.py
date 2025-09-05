@@ -4,6 +4,7 @@ import sys
 import django
 django.setup()
 
+import time
 import gzip
 import csv
 import sqlite3
@@ -101,6 +102,7 @@ def import_cancer_types(db) -> None:
             cancer_type=row['display_name'],
             cancer_type_vcf=row['vcf_name'],
             is_haemonc=bool(int(row['is_haemonc'])),
+            is_solid=bool(int(row['is_solid'])),
             total_patient_count=int(row['total_patient_count'])
         ),
         axis=1
@@ -330,11 +332,13 @@ def reset_db():
     -------
     None
     """
-
+    start = time.time()
     db = get_db()
     import_cancer_types(db)
     import_vcf_variants(db)
+    end = time.time()
     print('Successfully re-populated the database.')
+    print(f'Execution time: {end - start:.2f} seconds')
     db.close()
 
 if __name__ == '__main__':

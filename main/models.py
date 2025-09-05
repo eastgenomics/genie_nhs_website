@@ -5,6 +5,7 @@ class CancerType(models.Model):
     cancer_type = models.CharField(max_length=255)
     cancer_type_vcf = models.CharField(max_length=255)
     is_haemonc = models.BooleanField()
+    is_solid = models.BooleanField()
     total_patient_count = models.PositiveIntegerField()
 
     class Meta:
@@ -56,6 +57,8 @@ class Variant(models.Model):
         help_text=('SameNucleotideChange_All_Cancers'))
     haemonc_cancers_count = models.PositiveIntegerField(default=0, 
         help_text=('SameNucleotideChange_Haemonc_Cancers'))
+    solid_cancers_count = models.PositiveIntegerField(default=0, 
+        help_text=('SameNucleotideChange_Solid_Cancers'))
 
     class Meta:
         indexes = (
