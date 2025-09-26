@@ -17,7 +17,7 @@ def get_ordered_cancer_types() -> dict:
     
     cancer_types = CancerType.objects.values_list('cancer_type', flat=True)\
         .order_by('cancer_type')
-    agg_cancer_types = ['All Cancers', 'Haemonc Cancers', 'Solid Cancers']
+    agg_cancer_types = ['All Cancers', 'Solid Cancers', 'Haemonc Cancers']
     cancer_types = [ct for ct in cancer_types if ct not in agg_cancer_types]
     ordered_cancer_types = {
         item: rank for rank, item in enumerate(agg_cancer_types + cancer_types)
@@ -140,6 +140,7 @@ def get_variants(search_key: str, search_value: str) -> list:
             'chrom': db_variant.chrom,
             'pos': db_variant.pos,
             'consequence': get_worst_csq_display_term(db_variant.consequence),
+            'classification': db_variant.classification,
             'hgvs_c': _format_hgvs(db_variant.hgvs_c),
             'hgvs_p': _format_hgvs(db_variant.hgvs_p),
             'gene': db_variant.gene_symbol,
