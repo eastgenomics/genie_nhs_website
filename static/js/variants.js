@@ -178,4 +178,24 @@ document.addEventListener('DOMContentLoaded', function () {
         `
         return html
     }
+
+
+    /**
+     * A custom filter for the HGVS columns. The default bootstrap table
+     * filter control process '>' as a comparison command for numeric values
+     * and does not work with HGVS nomenclature (e.g. ENST00000358273.4:c.1A>G)
+     * Official bootstrap-table doc:
+     * https://bootstrap-table.com/docs/api/table-options/#detailformatter
+     * 
+     * @param {text} - The search text.
+     * @param {value} - The value of the column to compare.
+     * @param {field} - The column field name.
+     * @param {data} - The table data.
+     * @returns {Boolean} - Return false to filter out the current column/row.
+     *                      Return true to not filter out the current column/row.
+     */
+    window.filterCustomTextSearch = function (text, value, field, data) {
+        if (!text) return true;
+        return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
+    }
 });
