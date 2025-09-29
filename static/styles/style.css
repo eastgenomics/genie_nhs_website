@@ -23,8 +23,33 @@
     --nhs-white: #FFFFFF;
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     background-color: var(--nhs-pale-grey);
+}
+
+footer {
+    margin-top: auto;
+    background-color: var(--nhs-white);
+}
+
+footer p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 0;
+}
+
+footer img {
+    height: auto;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
 }
 
 .primary-link {
@@ -129,7 +154,7 @@ body {
 
 tr.primary {
     background-color: var(--nhs-bright-blue);
-    color: white;
+    color: var(--nhs-white);
 }
 
 tr.secondary,
@@ -137,7 +162,7 @@ tr.secondary:hover,
 th.secondary,
 td.secondary {
     background-color: var(--nhs-dark-grey);
-    color: white;
+    color: var(--nhs-white);
 }
 
 tr.secondary th,
@@ -145,7 +170,7 @@ tr.secondary td,
 th.secondary,
 td.secondary {
     text-align: center;
-    border: 1px solid white;
+    border: 1px solid var(--nhs-white);
     padding-right: 10px;
     padding-left: 10px;
 }

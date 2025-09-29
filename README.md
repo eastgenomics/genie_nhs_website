@@ -27,6 +27,18 @@ GENIE_CANCER_TYPES_CSV
 CSRF_TRUSTED_ORIGINS
 ```
 
+### Genie cancer types CSV
+
+The project expects a CSV file  (GENIE_CANCER_TYPES_CSV in the environment file) containing metadata for cancer types to be located in the same directory as the associated VCF file.
+
+The CSV file must include the following columns:
+
+* `vcf_name` (String) — The cancer type name as referenced in the VCF file's patient count attributes (e.g., `BLymphoblasticLeukemiaLymphoma`).
+* `display_name` (String) — The cancer type name as it should appear on the website (e.g., `B-Lymphoblastic Leukemia/Lymphoma`).
+* `is_haemonc` (Integer) — A `0` or `1` flag indicating whether the cancer type belongs to the HaemOnc group.
+* `is_solid` (Integer) — A `0` or `1` flag indicating whether the cancer type belongs to the Solid Tumor group.
+* `total_patient_count` (Integer) — The total number of GENIE patients associated with this cancer type.
+
 ## Running locally (development)
 1. Go to the project directory
 2. Create Python virtual environment:

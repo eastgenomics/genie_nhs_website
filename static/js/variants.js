@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return `table-variant-cancer-types-${variantID}`
     }
 
+    // Aggregated cancer types
+    const AGG_CANCER_TYPES = new Set(['All Cancers', 'Haemonc Cancers', 'Solid Cancers']);
 
     // Initialise variant table.
     const $table = $('#table-variants');
@@ -29,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     $subtable.bootstrapTable({
                         data: res.rows,
                         rowStyle: function (row, index) {
-                            if (row.cancer_type === 'All Cancers' || row.cancer_type === 'Haemonc Cancers') {
+                            if (AGG_CANCER_TYPES.has(row.cancer_type)) {
                                 return {
                                     classes: 'fw-bold'  // Make aggregated cancer types bold
                                 };
@@ -45,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Columns with no patients (zeroes) in all cancer types.
                     const zeroColumns = [];
                     // Columns to skip in zero-checks.
-                    const skipFields = ['cancer_type', 'is_haemonc'];
+                    const skipFields = ['cancer_type', 'category'];
                     
                     columns.forEach(column => {
                         // Ignore non-numeric columns.
@@ -158,15 +160,16 @@ document.addEventListener('DOMContentLoaded', function () {
             <table id="${var_cancer_types_table_id}" 
                 class="table table-sm table-sm-font w-auto"
                 data-filter-control="true"
+                data-sort-name="cancer_type"
                 hidden
             >
                 <thead>
                     <tr class="secondary">
-                        <th class="align-middle" data-field="cancer_type" data-filter-control="input" data-halign="center" data-sortable="true" data-width="200">Cancer type</th>
-                        <th class="align-middle" data-field="is_haemonc" data-align="center" data-halign="center" data-sortable="true" data-width="50">HaemOnc</th>
+                        <th class="align-middle" data-field="cancer_type" data-sort-name="cancer_type_order" data-filter-control="input" data-halign="center" data-sortable="true" data-width="200">Cancer type</th>
+                        <th class="align-middle" data-field="category" data-align="center" data-halign="center" data-sortable="true" data-width="50">Cancer<br>Category</th>
                         <th class="align-middle" data-field="same_nucleotide_change_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same nucleotide<br>change patient count</th>
                         <th class="align-middle" data-field="same_amino_acid_change_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same amino acid change<br>patient count</th>
-                        <th class="align-middle" data-field="same_or_downstream_truncating_variants_per_cds_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same or downstream truncating <br>variants per CDS patient count</th>
+                        <th class="align-middle" data-field="same_or_downstream_truncating_variants_per_cds_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same or downstream truncating<br>variants per CDS patient count</th>
                         <th class="align-middle" data-field="nested_inframe_deletions_per_cds_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Nested inframe deletions<br>per CDS patient count</th>
                         <th class="align-middle" data-field="cancer_n" data-halign="center" data-align="right" data-sortable="true" data-width="50">Total cancer<br>patient count</th>
                     </tr>
@@ -174,5 +177,25 @@ document.addEventListener('DOMContentLoaded', function () {
             </table>
         `
         return html
+    }
+
+
+    /**
+     * A custom filter for the HGVS columns. The default bootstrap table
+     * filter control process '>' as a comparison command for numeric values
+     * and does not work with HGVS nomenclature (e.g. ENST00000358273.4:c.1A>G)
+     * Official bootstrap-table doc:
+     * https://bootstrap-table.com/docs/api/table-options/#detailformatter
+     * 
+     * @param {text} - The search text.
+     * @param {value} - The value of the column to compare.
+     * @param {field} - The column field name.
+     * @param {data} - The table data.
+     * @returns {Boolean} - Return false to filter out the current column/row.
+     *                      Return true to not filter out the current column/row.
+     */
+    window.filterCustomTextSearch = function (text, value, field, data) {
+        if (!text) return true;
+        return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
     }
 });

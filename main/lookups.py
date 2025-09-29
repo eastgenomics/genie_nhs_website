@@ -1,5 +1,28 @@
-from main.models import Variant, VariantCancerTypePatientCount
+from main.models import CancerType, Variant, VariantCancerTypePatientCount
 from main.utils import get_worst_csq_display_term
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def get_ordered_cancer_types() -> dict:
+    """
+    Get cancer type order for sorting with the aggregated cancer types 
+    at the top.
+
+    Returns
+    -------
+    ordered_cancer_types: dict
+        A dictionary with cancer type names (keys) and their order (values).
+    """
+    
+    cancer_types = CancerType.objects.values_list('cancer_type', flat=True)\
+        .order_by('cancer_type')
+    agg_cancer_types = ['All Cancers', 'Solid Cancers', 'Haemonc Cancers']
+    cancer_types = [ct for ct in cancer_types if ct not in agg_cancer_types]
+    ordered_cancer_types = {
+        item: rank for rank, item in enumerate(agg_cancer_types + cancer_types)
+    }
+    return ordered_cancer_types
 
 
 def get_variant_cancer_type_pcs(variant_id) -> list:
@@ -27,12 +50,16 @@ def get_variant_cancer_type_pcs(variant_id) -> list:
     data = []
     for var_pc_cancer in var_pc_cancers:
         if var_pc_cancer.cancer_type.is_haemonc:
-            is_haemonc = '&#9989;' # Tick
+            category = 'HaemOnc'
+        elif var_pc_cancer.cancer_type.is_solid:
+            category = 'Solid'
         else:
-            is_haemonc = '&#10060;' # Cross
+            category = 'Other'
+        cancer_type = var_pc_cancer.cancer_type.cancer_type
         row = {
-            'cancer_type': var_pc_cancer.cancer_type.cancer_type,
-            'is_haemonc': is_haemonc,
+            'cancer_type': cancer_type,
+            'cancer_type_order': get_ordered_cancer_types()[cancer_type],
+            'category': category,
             'same_nucleotide_change_pc': \
                 var_pc_cancer.same_nucleotide_change_pc,
             'same_amino_acid_change_pc': \
@@ -67,16 +94,26 @@ def get_variants(search_key: str, search_value: str) -> list:
         A list of variant dictionaries which stores variant table rows data.
     """
 
-    def _format_hgvs(hgvs):
-        """Split joined HGVS descriptions."""
-        return hgvs.replace('&', ', ') if hgvs else hgvs
+    def _format_hgvs(hgvs_str):
+        """Format HGVS descriptions."""
+        if not hgvs_str:
+            return hgvs_str
+        
+        # Split joined HGVS descriptions (replace '&' with ', ')
+        new_hgvs = []
+        for hgvs in hgvs_str.split('&'):
+            # Add parentheses to HGVSp descriptions.
+            if 'p.' in hgvs and 'p.(' not in hgvs:
+                hgvs = f"p.({hgvs.split('p.')[1]})"
+            new_hgvs.append(hgvs)
+        return ', '.join(new_hgvs)
     
     # Search the database variant table by gene name or region/pos and
     # return an empty list if the search key is anything else.
     variants = []
     if search_key == 'gene':
         db_variants = Variant.objects.filter(
-            gene_symbol=search_value).order_by('pos')
+            gene_symbol__iexact=search_value).order_by('pos')
     elif search_key == 'region':
         # Region format: {chrom}:{start_pos}-{end_pos}
         # Position format: {chrom}:{pos}
@@ -103,11 +140,13 @@ def get_variants(search_key: str, search_value: str) -> list:
             'chrom': db_variant.chrom,
             'pos': db_variant.pos,
             'consequence': get_worst_csq_display_term(db_variant.consequence),
+            'classification': db_variant.classification,
             'hgvs_c': _format_hgvs(db_variant.hgvs_c),
             'hgvs_p': _format_hgvs(db_variant.hgvs_p),
             'gene': db_variant.gene_symbol,
             'refseq_transcript': db_variant.refseq_transcript,
             'haemonc_cancers_count': db_variant.haemonc_cancers_count,
+            'solid_cancers_count': db_variant.solid_cancers_count,
             'all_cancers_count': db_variant.all_cancers_count,
         }
         variants.append(variant)
