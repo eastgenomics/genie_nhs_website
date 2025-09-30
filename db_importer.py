@@ -23,7 +23,7 @@ CANCER_PC_PREFIXES = {
     'SameAminoAcidChange': 'same_amino_acid_change_pc',
     'SameOrDownstreamTruncatingVariantsPerCDS': \
         'same_or_downstream_truncating_variants_per_cds_pc',
-    'NestedInframeDeletionsPerCDS': 'nested_inframe_deletions_per_cds_pc',
+    'NestedInframeDeletionsPerAA': 'nested_inframe_deletions_per_aa_pc',
 }
 # A dict template for VariantCancerTypePatientCount row data without
 # variant and cancer foreign keys. Ensures that the order of column

@@ -66,8 +66,8 @@ def get_variant_cancer_type_pcs(variant_id) -> list:
                 var_pc_cancer.same_amino_acid_change_pc,
             'same_or_downstream_truncating_variants_per_cds_pc': \
                 var_pc_cancer.same_or_downstream_truncating_variants_per_cds_pc,
-            'nested_inframe_deletions_per_cds_pc': \
-                var_pc_cancer.nested_inframe_deletions_per_cds_pc,
+            'nested_inframe_deletions_per_aa_pc': \
+                var_pc_cancer.nested_inframe_deletions_per_aa_pc,
             'cancer_n': var_pc_cancer.cancer_type.total_patient_count,
         }
         data.append(row)
