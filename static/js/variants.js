@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <th class="align-middle" data-field="same_nucleotide_change_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same nucleotide<br>change patient count</th>
                         <th class="align-middle" data-field="same_amino_acid_change_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same amino acid change<br>patient count</th>
                         <th class="align-middle" data-field="same_or_downstream_truncating_variants_per_cds_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same or downstream truncating<br>variants per CDS patient count</th>
-                        <th class="align-middle" data-field="nested_inframe_deletions_per_cds_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Nested inframe deletions<br>per CDS patient count</th>
+                        <th class="align-middle" data-field="nested_inframe_deletions_per_aa_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Nested inframe deletions<br>per AA patient count</th>
                         <th class="align-middle" data-field="cancer_n" data-halign="center" data-align="right" data-sortable="true" data-width="50">Total cancer<br>patient count</th>
                     </tr>
                 </thead>
