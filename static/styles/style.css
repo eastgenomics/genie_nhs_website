@@ -180,3 +180,11 @@ td.secondary {
     overflow-wrap: anywhere;
     word-wrap: break-word; /* legacy alias */
 }
+
+/* Double position filter input field width when focused 
+   to fit the start-end coordinates range. */
+.bootstrap-table-filter-control-pos:focus {
+    width: 200% !important;
+    z-index: 1000;
+    position: relative;
+}
