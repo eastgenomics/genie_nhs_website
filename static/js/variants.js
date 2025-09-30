@@ -198,4 +198,31 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!text) return true;
         return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
     }
+
+
+    /**
+     * A custom filter for the Position column. Supports range (start-end) search.
+     * Official bootstrap-table doc:
+     * https://bootstrap-table.com/docs/api/table-options/#detailformatter
+     * 
+     * @param {text} - The search text.
+     * @param {value} - The value of the column to compare.
+     * @param {field} - The column field name.
+     * @param {data} - The table data.
+     * @returns {Boolean} - Return false to filter out the current column/row.
+     *                      Return true to not filter out the current column/row.
+     */
+    window.filterCustomIntegerSearch = function (text, value, field, data) {
+        if (!text) return true;
+
+        if (String(text).indexOf('-') !== -1) {
+            let range = text.split('-');
+            let start = Number(range[0]);
+            let end = Number(range[1]);
+            value = Number(value);
+            return value >= start && value <= end;
+        } else {
+            return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
+        }  
+    }
 });
