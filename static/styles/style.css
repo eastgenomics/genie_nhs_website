@@ -52,6 +52,22 @@ footer img {
     object-fit: contain;
 }
 
+h1, h2, h3, h4, h5, h6, p, ul, ol {
+    padding-left: 0px !important;
+}
+
+ul {
+  list-style-position: inside;
+}
+
+ol {
+  list-style-position: inside;
+}
+
+.blockquote {
+    font-size: 14px;
+}
+
 .primary-link {
   color: var(--nhs-bright-blue);
   text-decoration: none;
@@ -66,7 +82,11 @@ footer img {
 }
 
 .card-800 { 
-    width: 800px;
+    width: min(100%, 800px);
+}
+
+.card-1000 { 
+    width: min(100%, 1000px);
 }
 
 .ml-30 { 

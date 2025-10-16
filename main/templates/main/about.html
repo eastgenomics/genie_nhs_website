@@ -1,0 +1,89 @@
+{% extends "main/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid px-5">
+    <div class="row mt-3 p-4 mx-auto bg-white shadow card-1000">
+        <h4>GENIE v17 - Generation of count data</h4>
+        <hr>
+        <p>Count data are generated to assist with variant interpretation according to the 
+            <a href="https://www.acgs.uk.com/media/12831/svig-uk_guidelines_v10_-_post-acgs_ratification_final_submit01.pdf">
+                UK Somatic Variant Interpretation Guidelines (S-VIG)</a>.
+        </p>
+        <h5>Count details</h5>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Count Type</th>
+                    <th>Present for</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Same nucleotide change</strong></td>
+                    <td>All variants.</td>
+                    <td>Variants are grouped by GRCh38 CHROM, POS, REF and ALT and the number of unique patients are counted.
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Same amino acid change</strong></td>
+                    <td>All variants with <code>HGVSp</code> notation present.</td>
+                    <td>Variants are grouped by <code>Hugo_Symbol</code>, <code>Transcript_ID</code> and <code>HGVSp</code> and
+                        the number of unique patients are counted.</td>
+                </tr>
+                <tr>
+                    <td><strong>Downstream frameshift (truncating)</strong></td>
+                    <td>Any variants with a <code>Variant_Classification</code> of <code>Frame_Shift_Del</code>,
+                        <code>Frame_Shift_Ins</code> or <code>Nonsense_Mutation</code> which have "Ter" in the
+                        <code>HGVSp</code> notation.</td>
+                    <td>The first position is extracted from the <code>HGVSc</code> notation and the number of unique patients
+                        with downstream frameshift (truncating) variants with the same <code>Hugo_Symbol</code> and
+                        <code>Transcript_ID</code> are counted.</td>
+                </tr>
+                <tr>
+                    <td><strong>Inframe deletions</strong></td>
+                    <td>Any variants with a <code>Variant_Classification</code> equal to <code>In_Frame_Del</code> with
+                        <code>HGVSp</code> notation present.</td>
+                    <td>For each variant, the deletion range is extracted from the <code>HGVSp</code> notation and the number of
+                        unique patients with an inframe deletion with the same <code>Hugo_Symbol</code> and
+                        <code>Transcript_ID</code> nested within the range are counted.</td>
+                </tr>
+            </tbody>
+        </table>
+        <h5>Counting principles</h5>
+        <p>A variant can be present multiple times for the same patient, which can be for the same or different cancer types.
+            Example scenario where a patient has two tests performed:</p>
+        <ol>
+            <li>Ovarian Cancer</li>
+            <li>Leukemia</li>
+        </ol>
+        <p>All variants from test 1 for this patient go into the counts for cancer 1 (Ovarian Cancer) and all variants from test
+            2 go into the counts for cancer 2 (Leukemia). However, counts for all cancers (and grouped counts for haemonc or
+            solid cancers) do not double count any variants for this patient shared between cancer 1 & 2.</p>
+        <h5>Annotations</h5>
+        <p>Annotations, including transcripts, are taken from the GENIE data. 39 genes are annotated against multiple
+            transcripts:</p>
+        <blockquote class="blockquote">
+            <p class="mb-0">RUNX1, HIST1H3D, SESN1, TAP2, RUNX1T1, ERRFI1, DYNC1I1, TPM1, PKD1L2, RHOT1, RRAS2, FGF14, SGK1, INPP5D, CIC,
+                PTPRS, SDHD, BCL6, MECOM, IGF1, KCNIP1, CLDN18, CUX1, SQSTM1, FGF5, PTPRB, ABL1, NRG1, MAF, ESR1, ETS1, PGBD5,
+                TERT, SHANK2, FGF6, HSP90AA1, APC, PPARG, HDAC9</p>
+        </blockquote>
+        <h5>Normalisation duplicates</h5>
+        <p>Variants in GENIE are provided by separate submitting institutions and no normalisation is performed within GENIE
+            itself. Variants were therefore converted from MAF to VCF description (GRCh37) and normalised (left-aligned and made
+            parsimonious), which identified 3038 variants with a differing representation within GENIE which normalised to the
+            same GRCh37 variant. For these variants, the <code>Consequence</code>, <code>HGVSc</code>, <code>HGVSp</code> and
+            <code>Variant_Classification</code> were regenerated against the same <code>Transcript_ID</code> prior to counting.
+        </p>
+        <h5>Variants removed</h5>
+        <ul>
+            <li>732 variants with a <code>Hugo_Symbol</code> of "Unknown" were removed.</li>
+            <li>3 variants were removed due to a mismatch with the GRCh37 reference when converting from MAF to VCF description.
+            </li>
+            <li>684 variants failed to liftover from GRCh37 -> GRCh38 and were removed.</li>
+            <li>2 variants on contig 22_KI270928v1_alt were removed.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
