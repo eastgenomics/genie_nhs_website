@@ -101,5 +101,5 @@
 </div>
 <!-- Load context variables from the django backend -->
 {{ page_context|json_script:"page-context" }}
-<script src="{% static 'js/variants.js' %}" defer></script>
+<script src="{% static 'js/variants.js' %}?{% now 'U' %}" defer></script>
 {% endblock %}
