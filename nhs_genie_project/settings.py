@@ -58,6 +58,8 @@ if not SECRET_KEY:
         raise ImproperlyConfigured(
             "SECRET_KEY must be set when DEBUG is False.")
 
+GENIE_VERSION = os.getenv("GENIE_VERSION") or ''
+
 DATA_FOLDER = os.getenv("DATA_FOLDER") or None
 if DATA_FOLDER:
     DATA_FOLDER = Path(DATA_FOLDER)
@@ -119,6 +121,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "main.context_processors.genie_version",
             ],
         },
     },

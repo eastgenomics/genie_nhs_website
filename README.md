@@ -19,6 +19,8 @@ PORT
 ALLOWED_HOSTS
 # Path to a folder with Genie VCF file and cancer types csv
 DATA_FOLDER
+# Genie data version (e.g. v17), is displayed in multiple places on the website
+GENIE_VERSION
 # Genie VCF file name
 GENIE_VCF
 # Genie cancer types csv - contains VCF & display cancer type names, groups (e.g. HaemOnc), and total patient counts
