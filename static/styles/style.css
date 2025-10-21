@@ -120,6 +120,12 @@ ol {
     width: 300px;
 }
 
+.beta-banner {
+  background-color: var(--nhs-aqua-green);
+  color: var(--nhs-white);
+  font-size: 0.875rem;
+}
+
 /* Tables */
 
 /* Overwrite of the bootstrap-table classes */
