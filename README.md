@@ -200,5 +200,5 @@ https://docs.docker.com/engine/install/
 6. Build and run the Docker container (`-d` is optional to detach from the 
     container):
     ```bash
-    docker compose --build -d
+    docker compose up --build -d
     ```
