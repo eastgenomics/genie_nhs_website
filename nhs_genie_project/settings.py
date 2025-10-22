@@ -64,7 +64,8 @@ if not SECRET_KEY:
 
 GENIE_VERSION = os.getenv("GENIE_VERSION") or ''
 
-DATA_FOLDER = os.getenv("DATA_FOLDER") or BASE_DIR / 'data'
+DATA_FOLDER = os.getenv("DATA_FOLDER")
+DATA_FOLDER = Path(DATA_FOLDER) if DATA_FOLDER else BASE_DIR / 'data'
 
 GENIE_VCF = os.getenv("GENIE_VCF") or None
 if GENIE_VCF:

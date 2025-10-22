@@ -91,7 +91,7 @@ possible to have multiple working instances if needed.
 
 To set up the database:
 
-1. Go to the project directory
+1. Go to the project directory.
 2. Create a Python virtual environment:
     ```bash
     python -m venv venv
@@ -125,18 +125,80 @@ To set up the database:
     python manage.py runserver 8080
     ```
 
-## Running the website in Docker without a dedicated web server
+## Running the website in Docker with Nginx or WhiteNoise
 1. Follow the official Docker installation instructions if not already installed:
 https://docs.docker.com/engine/install/
-
-1. Open the .env file and:
-    * Set `USE_WHITENOISE=1` to serve static files
-    * Set `PORT=X`, where `X` is the server port to access the website
+2. Go to the project directory.
+3. Open the .env file and:
+    * Set `USE_WHITENOISE` to `1` if deploying with **WhiteNoise**
+    or to `0` if deploying with **Nginx**
+    * Set `PORT=X`, where `X` is the server port used to access the website.
     * Set `ALLOWED_HOSTS` to the server IP or website domain(s)
-2. Build and run the Docker container:
-    * Add `-d` to detach from the container (optional)
-    * Add `-p` your_project_name to use a custom project name (optional), for example,
-    to run multiple Docker containers:
+4. Create a `staticfiles` folder and set ownership and permissions so that it 
+    is accessible by the app/Nginx user (change the user ID `1000` if necessary):
     ```bash
-    docker compose up --build -d -p nhs_genie
+    mkdir staticfiles
+    sudo chown -R 1000:1000 ./staticfiles
+    sudo chmod -R a+rwx ./staticfiles
+    ```
+    **IMPORTANT**: If the website opens but cannot load css and javascript
+    files then this folder is either missing or it's permissions are not 
+    configured correctly.
+5. If deploying with **Nginx**, you need to edit your Nginx server
+    configuration. This README does not cover a full Nginx setup and assumes 
+    that you already have a server block configured to listen on a specific 
+    port. For more information about Nginx configuration, refer to the
+    [official guides](https://nginx.org/en/docs/beginners_guide.html).
+
+    Add `/` and `/static/` location blocks (optionally with security headers) 
+    inside your server configuration. **IMPORTANT**: Replace {PORT} with the 
+    PORT number from the .env file and {WEB_SERVER_PATH} with the project path.
+
+    ```nginx
+    server {
+        server_name your-website-domain.com;
+        
+        # Your website ports and SSL certificates configuration
+        # ...
+
+        # Optional security headers
+        add_header Strict-Transport-Security 'max-age=31536000; includeSubDomains; preload';
+        add_header X-XSS-Protection "1; mode=block";
+        add_header X-Frame-Options "SAMEORIGIN";
+        add_header X-Content-Type-Options nosniff;
+        add_header Referrer-Policy "strict-origin";
+        add_header Permissions-Policy "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()";
+
+
+        location / {
+            # Replace {PORT} with the the PORT number from the .env file 
+            proxy_pass http://127.0.0.1:{PORT}; 
+            proxy_redirect off;
+            proxy_connect_timeout 5s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }
+
+        location /static/ {
+            # Replace {WEB_SERVER_PATH} with the path to the project 
+            alias {WEB_SERVER_PATH}/genie_nhs_website/staticfiles/;
+            # Enable long-lived caching for immutable static files to boost
+            # performance and reduce origin load.
+            access_log off;
+            expires 7d;
+            try_files $uri =404;
+        }
+    }
+    ```
+
+    Test your Nginx configuration and restart the service:
+    ```bash
+    sudo nginx -t
+    sudo systemctl restart nginx
+    ```    
+
+6. Build and run the Docker container (`-d` is optional to detach from the 
+    container):
+    ```bash
+    docker compose --build -d
     ```

@@ -6,7 +6,7 @@ services:
       - "${PORT}:8000"
     volumes:
       - ./data:/app/data
-      - static_volume:/app/staticfiles
+      - ./staticfiles:/app/staticfiles
     env_file:
       - .env
     command: sh -c "
@@ -14,6 +14,3 @@ services:
         python manage.py collectstatic --noinput &&
         gunicorn --bind 0.0.0.0:8000 --workers 3 nhs_genie_project.wsgi:application
       "
-
-volumes:
-  static_volume:
