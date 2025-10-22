@@ -5,6 +5,5 @@
 !/nhs_genie_project
 !/static
 !/db_importer.py
-!/db.sqlite3
 !/manage.py
 !/requirements.txt

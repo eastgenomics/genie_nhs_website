@@ -66,3 +66,6 @@ db.sqlite3
 
 # Virtual environment
 venv
+
+# Data folder with Genie VCF, cancer types csv, and SQLite database.
+data

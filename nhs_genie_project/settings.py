@@ -49,6 +49,10 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DEBUG", default=False)
 
+USE_WHITENOISE = env_bool("USE_WHITENOISE", default=False)
+
+DB_NAME = os.getenv("DB_NAME") or 'db.sqlite3'
+
 # Enforce SECRET_KEY presence in non-debug environments
 if not SECRET_KEY:
     # Provide dev fallback.
@@ -60,14 +64,13 @@ if not SECRET_KEY:
 
 GENIE_VERSION = os.getenv("GENIE_VERSION") or ''
 
-DATA_FOLDER = os.getenv("DATA_FOLDER") or None
-if DATA_FOLDER:
-    DATA_FOLDER = Path(DATA_FOLDER)
+DATA_FOLDER = os.getenv("DATA_FOLDER") or BASE_DIR / 'data'
+
 GENIE_VCF = os.getenv("GENIE_VCF") or None
-if GENIE_VCF and DATA_FOLDER:
+if GENIE_VCF:
     GENIE_VCF = DATA_FOLDER / GENIE_VCF
 GENIE_CANCER_TYPES_CSV = os.getenv("GENIE_CANCER_TYPES_CSV") or None
-if GENIE_CANCER_TYPES_CSV and DATA_FOLDER:
+if GENIE_CANCER_TYPES_CSV:
     GENIE_CANCER_TYPES_CSV = DATA_FOLDER / GENIE_CANCER_TYPES_CSV
 
 ALLOWED_HOSTS = [*env_list("ALLOWED_HOSTS"), "127.0.0.1", "localhost"]
@@ -101,6 +104,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    *(["whitenoise.middleware.WhiteNoiseMiddleware"] if USE_WHITENOISE else []),
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -137,7 +141,7 @@ WSGI_APPLICATION = "nhs_genie_project.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_DIR / "data" / DB_NAME,
     }
 }
 
@@ -173,6 +177,13 @@ STATIC_DIR = BASE_DIR / "static"
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [STATIC_DIR]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+if USE_WHITENOISE:
+    STORAGES = {
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
