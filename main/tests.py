@@ -11,12 +11,14 @@ def r(name: str) -> str:
 
 
 class IndexViewTests(TestCase):
+    """Homepage test."""
     def test_index_returns_200(self):
         resp = self.client.get(r("index"))
         self.assertEqual(resp.status_code, 200)
 
 
 class VariantsViewTests(TestCase):
+    """Variants page test."""
     def test_variants_returns_200(self):
         resp = self.client.get(r("variants"))
         self.assertEqual(resp.status_code, 200)

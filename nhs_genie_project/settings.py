@@ -19,6 +19,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 # Environment file variables parsing helpers.
 def env_bool(name: str, default: bool = False) -> bool:
+    """Boolean environment variable converter."""
     val = os.getenv(name)
     if val is None:
         return default
@@ -26,6 +27,7 @@ def env_bool(name: str, default: bool = False) -> bool:
 
 
 def env_list(name: str, default: Optional[List[str]] = None) -> List[str]:
+    """List environment variable converter."""
     val = os.getenv(name)
     if not val:
         return default or []

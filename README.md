@@ -8,7 +8,7 @@ datasets generated to assist with variant interpretation according to the
 [UK Somatic Variant Interpretation Guidelines (S-VIG)](https://www.acgs.uk.com/media/12831/svig-uk_guidelines_v10_-_post-acgs_ratification_final_submit01.pdf). 
 
 The project is built with **Django 5.2** and **SQLite**, supports deployment 
-both via **Docker** with **Nginx** web server and without (via **WhineNoise**),
+both via **Docker** with **Nginx** web server and without (via **WhiteNoise**),
 and is distributed under the **MIT License**.
 
 
@@ -144,7 +144,7 @@ https://docs.docker.com/engine/install/
     sudo chmod -R a+rwx ./staticfiles
     ```
     **IMPORTANT**: If the website opens but cannot load css and javascript
-    files then this folder is either missing or it's permissions are not 
+    files then this folder is either missing or its permissions are not 
     configured correctly.
 5. If deploying with **Nginx**, you need to edit your Nginx server
     configuration. This README does not cover a full Nginx setup and assumes 
