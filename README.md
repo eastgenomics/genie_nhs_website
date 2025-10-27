@@ -59,6 +59,8 @@ GENIE_CANCER_TYPES_CSV
 # CSRF trusted origins (optional, derived from ALLOWED_HOSTS 
 # unless explicitly provided)
 CSRF_TRUSTED_ORIGINS
+# Google Analytics ID (optional)
+GOOGLE_ANALYTICS_ID
 ```
 
 ### Genie source data

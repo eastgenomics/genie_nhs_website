@@ -1,6 +1,7 @@
 from django.conf import settings
 
-def genie_version(request):
+def project_settings(request):
     return {
         'GENIE_VERSION': settings.GENIE_VERSION,
+        'GOOGLE_ANALYTICS_ID': settings.GOOGLE_ANALYTICS_ID,
     }

@@ -49,6 +49,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DEBUG", default=False)
 
+GOOGLE_ANALYTICS_ID = os.getenv("GOOGLE_ANALYTICS_ID") or None
+
 USE_WHITENOISE = env_bool("USE_WHITENOISE", default=False)
 
 DB_NAME = os.getenv("DB_NAME") or 'db.sqlite3'
@@ -127,7 +129,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "main.context_processors.genie_version",
+                "main.context_processors.project_settings",
             ],
         },
     },
