@@ -128,8 +128,8 @@ To set up the database:
     ```
 
 ## Running the website in Docker with Nginx or WhiteNoise
-1. Follow the official Docker installation instructions if not already installed:
-https://docs.docker.com/engine/install/
+1. Follow the [official Docker installation instructions](https://docs.docker.com/engine/install/) 
+    if not already installed.
 2. Go to the project directory.
 3. Open the .env file and:
     * Set `USE_WHITENOISE` to `1` if deploying with **WhiteNoise**
@@ -144,7 +144,7 @@ https://docs.docker.com/engine/install/
     sudo chmod -R a+rwx ./staticfiles
     ```
     **IMPORTANT**: If the website opens but cannot load css and javascript
-    files then this folder is either missing or its permissions are not 
+    files, then this folder is either missing or its permissions are not 
     configured correctly.
 5. If deploying with **Nginx**, you need to edit your Nginx server
     configuration. This README does not cover a full Nginx setup and assumes 

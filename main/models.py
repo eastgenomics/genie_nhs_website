@@ -74,7 +74,7 @@ class Variant(models.Model):
         )
 
     def __str__(self):
-        "Returns CHROM-POS-REF-ALT variant ID."
+        """Returns CHROM-POS-REF-ALT variant ID."""
         return f"{self.chrom}-{self.pos}-{self.ref}-{self.alt}"
     
 

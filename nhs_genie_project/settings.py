@@ -51,7 +51,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DEBUG", default=False)
 
-GOOGLE_ANALYTICS_ID = os.getenv("GOOGLE_ANALYTICS_ID") or None
+GOOGLE_ANALYTICS_ID = os.getenv("GOOGLE_ANALYTICS_ID")
 
 USE_WHITENOISE = env_bool("USE_WHITENOISE", default=False)
 
@@ -71,10 +71,10 @@ GENIE_VERSION = os.getenv("GENIE_VERSION") or ''
 DATA_FOLDER = os.getenv("DATA_FOLDER")
 DATA_FOLDER = Path(DATA_FOLDER) if DATA_FOLDER else BASE_DIR / 'data'
 
-GENIE_VCF = os.getenv("GENIE_VCF") or None
+GENIE_VCF = os.getenv("GENIE_VCF")
 if GENIE_VCF:
     GENIE_VCF = DATA_FOLDER / GENIE_VCF
-GENIE_CANCER_TYPES_CSV = os.getenv("GENIE_CANCER_TYPES_CSV") or None
+GENIE_CANCER_TYPES_CSV = os.getenv("GENIE_CANCER_TYPES_CSV")
 if GENIE_CANCER_TYPES_CSV:
     GENIE_CANCER_TYPES_CSV = DATA_FOLDER / GENIE_CANCER_TYPES_CSV
 
