@@ -221,6 +221,12 @@ document.addEventListener('DOMContentLoaded', function () {
             let end = Number(range[1]);
             value = Number(value);
             return value >= start && value <= end;
+        } else if (String(text).startsWith('>')) {
+            let pos = Number(text.replace('>', '').trim())
+            return value >= pos
+        } else if (String(text).startsWith('<')) {
+            let pos = Number(text.replace('<', '').trim())
+            return value <= pos
         } else {
             return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
         }  

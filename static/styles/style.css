@@ -77,6 +77,14 @@ ol {
   text-decoration: underline;
 }
 
+.alt-info {
+    color: var(--nhs-white);
+}
+
+.alt-info:hover {
+    color: var(--nhs-aqua-green);
+}
+
 .search-box {
     font-size: 14px;
 }
