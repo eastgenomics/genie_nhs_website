@@ -67,7 +67,7 @@ db.sqlite3
 # Virtual environment
 venv
 
-# Data folder with Genie VCF, cancer types csv, and SQLite database.
+# Data folder with GENIE VCF, cancer types csv, and SQLite database.
 data
 
 # Default static files folder for Nginx/WhiteNoise

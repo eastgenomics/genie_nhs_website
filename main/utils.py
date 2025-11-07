@@ -87,3 +87,57 @@ def get_worst_csq_display_term(csqs: str) -> str:
                           for csq in csqs_list)
     worst_csq = VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT[worst_csq_index]
     return VEP_CSQ_TERMS[worst_csq]
+
+# Variant classifications grouped by categories.
+LOF_CLASSIFICATIONS = {
+    'Frame_Shift_Del',
+    'Frame_Shift_Ins',
+    'Nonsense_Mutation',
+    'Splice_Site',
+}
+
+# A variant is classified as PTV LoF if it has one of these 
+# classifications AND "Ter" AA in HGVSp. 
+LOF_CANDIDATE_PTV_CLASSIFICATIONS = {
+    'Frame_Shift_Del',
+    'Frame_Shift_Ins',
+    'Nonsense_Mutation',
+}
+
+MISSENSE_AND_INFRAME_INDEL_CLASSIFICATIONS = {
+    'In_Frame_Ins',
+    'In_Frame_Del',
+    'Nonstop_Mutation',
+    'Missense_Mutation',
+    'Translation_Start_Site',
+}
+
+def get_classification_category(classification: str, hgvs_p: str) -> str:
+    """
+    Return variant classification category based on its classification
+    and HGVSp notation.
+
+    Parameters
+    ----------
+    classification : str
+        GENIE variant classification (e.g. Nonsense_Mutation)
+    hgvs_p : str
+        Variant HGVSp notation (e.g. Nonsense_Mutation)
+
+    Returns
+    -------
+    str
+        Variant classification category: "PTV LoF", "non-PTV LoF",
+        "Missense / Inframe indel", "Silent", "Other".
+    """
+    if (classification in LOF_CANDIDATE_PTV_CLASSIFICATIONS 
+            and hgvs_p and 'Ter' in hgvs_p):
+        return 'PTV LoF'
+    elif classification in LOF_CLASSIFICATIONS:
+        return 'non-PTV LoF'
+    elif classification in MISSENSE_AND_INFRAME_INDEL_CLASSIFICATIONS:
+        return 'Missense / Inframe indel'
+    elif classification == 'Silent':
+        return 'Silent'
+    else:
+        return 'Other'

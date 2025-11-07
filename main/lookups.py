@@ -1,5 +1,5 @@
 from main.models import CancerType, Variant, VariantCancerTypePatientCount
-from main.utils import get_worst_csq_display_term
+from main.utils import get_worst_csq_display_term, get_classification_category
 from functools import lru_cache
 
 
@@ -133,14 +133,19 @@ def get_variants(search_key: str, search_value: str) -> list:
         return variants
 
     for db_variant in db_variants:
+        is_snv = len(db_variant.ref) == len(db_variant.alt) == 1
         # Construct variant dict which keys matches variant table 
         # "data-field" properties in "variants.html" template.
         variant = {
             'variant_id': db_variant.id,
             'chrom': db_variant.chrom,
             'pos': db_variant.pos,
+            'allele_type': 'SNV' if is_snv else 'INDEL',
             'consequence': get_worst_csq_display_term(db_variant.consequence),
             'classification': db_variant.classification,
+            'classification_category': get_classification_category(
+                db_variant.classification, db_variant.hgvs_p
+            ),
             'hgvs_c': _format_hgvs(db_variant.hgvs_c),
             'hgvs_p': _format_hgvs(db_variant.hgvs_p),
             'gene': db_variant.gene_symbol,

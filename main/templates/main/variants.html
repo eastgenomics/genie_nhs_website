@@ -34,6 +34,49 @@
                             after applying all filters. -->
                         <h6 class="px-0 m-0"><b>Variants:</b> <span id="var-count-text"></span></h6>
                     </div>
+                    <div class="col col-auto">
+                        <div class="vr mt-1" style="height: 34px;"></div>
+                    </div>
+                    <div class="col col-auto pe-0 d-flex gap-1">
+                        <input class="form-check-input form-check-input-red variant-classification-filter" type="checkbox" id="checkbox-ptv-lof" value="PTV LoF" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-red" for="checkbox-ptv-lof">PTV LoF</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-ptv-lof" data-group="variant-classification-filter">only</button>
+                    </div>                  
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-red variant-classification-filter" type="checkbox" id="checkbox-non-ptv-lof" value="non-PTV LoF" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-red" for="checkbox-non-ptv-lof">non-PTV LoF</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-non-ptv-lof" data-group="variant-classification-filter">only</button>
+                    </div>
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-orange variant-classification-filter" type="checkbox" id="checkbox-miss" value="Missense / Inframe indel" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-orange" for="checkbox-miss">Missense / Inframe indel</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-miss" data-group="variant-classification-filter">only</button>
+                    </div>
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-green variant-classification-filter" type="checkbox" id="checkbox-syn" value="Silent" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-green" for="checkbox-syn">Silent</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-syn" data-group="variant-classification-filter">only</button>
+                    </div>
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-grey variant-classification-filter" type="checkbox" id="checkbox-oth" value="Other" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-grey" for="checkbox-oth">Other</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-oth" data-group="variant-classification-filter">only</button>
+                    </div>
+                    <div class="col col-auto">
+                        <a class="primary-link" href="#" id="panel-show-all-variants-modal" data-bs-toggle="modal" data-bs-target="#infoVariantClassificationGroups">
+                            <i class="fa-solid fa-xl fa-circle-question"></i></a>
+                    </div>
+                    <div class="col col-auto">
+                        <div class="vr mt-1" style="height: 34px;"></div>
+                    </div>
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-blue allele-filter" type="checkbox" id="checkbox-snv" value="SNV" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-blue" for="checkbox-snv">SNVs</label>
+                    </div>
+                    <div class="col col-auto">
+                        <input class="form-check-input form-check-input-blue allele-filter" type="checkbox" id="checkbox-indel" value="INDEL" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-blue" for="checkbox-indel">Indels</label>
+                    </div>                   
                     <div class="col col-auto ms-auto">
                         * Same nucleotide change patient count 
                         <a class="primary-link" href="{% url 'main:about' %}"><i class="fa-solid fa-xl fa-circle-question"></i></a>
@@ -107,6 +150,9 @@
         </div>
     </div>
 </div>
+<!-- Info modals -->
+{% include 'main/info_modals/var_classification_filters.html' %}
+
 <!-- Load context variables from the django backend -->
 {{ page_context|json_script:"page-context" }}
 <script src="{% static 'js/variants.js' %}?{% now 'U' %}" defer></script>

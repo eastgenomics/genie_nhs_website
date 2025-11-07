@@ -1,0 +1,58 @@
+<div class="modal fade" id="infoVariantClassificationGroups" tabindex="-1" aria-labelledby="infoVariantClassificationGroupsLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="infoVariantClassificationGroupsLabel">Variant Classification Groups</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-unstyled">
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-red variant-classification-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>PTV LoF</b> (with <b>Ter</b> in HGVSp)
+                        <ul class="mt-1 ms-4">
+                            <li>Frame_Shift_Del</li>
+                            <li>Frame_Shift_Ins</li>
+                            <li>Nonsense_Mutation</li>
+                        </ul>
+                    </li>
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-red variant-classification-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>non-PTV LoF</b> (without <b>Ter</b> in HGVSp)
+                        <ul class="mt-1 ms-4">
+                            <li>Frame_Shift_Del</li>
+                            <li>Frame_Shift_Ins</li>
+                            <li>Nonsense_Mutation</li> 
+                            <li>Splice_Site</li>
+                        </ul>
+                    </li>
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-orange variant-classification-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>Missense / Inframe indel</b>
+                        <ul class="mt-1 ms-4">
+                            <li>In_Frame_Ins</li>
+                            <li>In_Frame_Del</li>
+                            <li>Nonstop_Mutation</li>
+                            <li>Missense_Mutation</li>
+                            <li>Translation_Start_Site</li>
+                        </ul>
+                    </li>
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-green variant-classification-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>Silent</b>
+                        <ul class="mt-1 ms-4">
+                            <li>Silent</li>
+                        </ul>
+                    </li>
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-grey variant-classification-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>Other</b>
+                        <ul class="mt-1 ms-4">
+                            <li>All others</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

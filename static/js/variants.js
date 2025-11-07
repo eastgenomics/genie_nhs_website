@@ -2,6 +2,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load context variables from the variant.html embedded js.
     const context = JSON.parse(document.getElementById('page-context').textContent);
 
+    // List of checkboxes used to filter variants based on their
+    // 1. Classification (e.g. PTV LoF, Silent)
+    const $classFilters = $('.variant-classification-filter');
+    // 2. Allele type (e.g. SNVs, Indels)
+    const $alleleFilters = $('.allele-filter');
+    // All checkbox filters. 
+    const $checkboxFilters = $([...$classFilters, ...$alleleFilters])
 
     // Get variant extended row subtable ID.
     function getVariantCancerTypesSubtableID(variantID) {
@@ -85,6 +92,10 @@ document.addEventListener('DOMContentLoaded', function () {
         $table.bootstrapTable('filterBy', {});
         // Update the displayed variant count.
         updateVariantCount();
+        // Reset all filter checkboxes.
+        $checkboxFilters.each(function() {
+            this.checked = true;
+        });
     }
 
 
@@ -231,4 +242,186 @@ document.addEventListener('DOMContentLoaded', function () {
             return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
         }  
     }
+
+
+    // Filter table based on selected variant categories and allele types.
+    function filterTable() {
+        // Classification and Allele type checkbox values are the same as 
+        // values in classification_category and allele_type columns.
+        const selectedClassFilters = $classFilters.filter(':checked').map(function() {
+            return $(this).val();
+        }).get();
+        const selectedAlleleFilters = $alleleFilters.filter(':checked').map(function() {
+            return $(this).val();
+        }).get();
+        $table.bootstrapTable('filterBy', {
+            classification_category: selectedClassFilters,
+            allele_type: selectedAlleleFilters,
+        });
+    }
+
+
+    // Recalculate table and variant counts when checkbox filters change.
+    $checkboxFilters.on('change', function() {
+        filterTable();
+        updateVariantCount();
+    });
+
+
+    /**
+     * Bootstrap Table triggers multiple "post-header.bs.table" events during
+     * the initial load, both before and after "load-success.bs.table".
+     *
+     * The "Consequence" and "Classification" selects list all unfiltered options
+     * and don't update when filters are applied, so they may show options with
+     * no matching results.
+     *
+     * To improve usability, each option displays the count of matching variants
+     * based on active filters (e.g., "Missense variant (1234)"). Counts are
+     * recalculated only after the table fully loads and when filters change.
+     */
+
+    // Tracks whether the table has completed its first successful load
+    let tableInitialized = false
+    // Lists of all possible "Consequence" and "Classification" values (from unfiltered data)
+    let allVarCsqs = []
+    let allVarClasses = []
+    // Stores the last known filter set to detect when filters change
+    let currentFilters = null;
+
+    
+    /**
+     * Updates a <select> control with option labels that include counts of
+     * matching items (e.g., "Missense (1234)").
+     * @param {HTMLSelectElement} selectElement - Target <select> element
+     * @param {Array} allValues - All possible values for this field
+     * @param {Array} filteredData - Table data currently visible under active filters
+     * @param {String} property - Table property to count (e.g. "consequence")
+     * @returns {void}
+     */
+    function updateSelectWithCounts(selectElement, allValues, filteredData, property) {
+        // Count how many rows match each property value
+        const counts = filteredData.reduce((acc, row) => {
+            const key = row[property];
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Compute total number of matching rows
+        all_count = Object.values(counts).reduce((sum, val) => sum + val, 0);
+
+        // Remember currently selected value (to restore it later)
+        const current = selectElement.value;
+
+        // Clear and rebuild <select> options
+        selectElement.innerHTML = '';
+        selectElement.add(new Option(`All (${all_count})`, ''));
+
+        // Add each option with its respective count
+        allValues.forEach(v => {
+            const count = counts[v] || 0;
+            selectElement.add(new Option(`${v} (${count})`, v));
+        });
+
+        // Restore previous selection 
+        if (allValues.includes(current)) {
+            selectElement.value = current;
+        }
+    }
+
+    
+    /**
+     * Combines full and partial Bootstrap Table filters into one object.
+     * Partial filters override full filters when both exist.
+     */
+    function getCombinedFilters() {
+        const instance = $table.data('bootstrap.table');
+        if (!instance) return {};
+
+        const filters = instance.filterColumns || {};
+        const partialFilters = instance.filterColumnsPartial || {};
+
+        return { ...filters, ...partialFilters };
+    }
+
+    
+    // Compares two filter objects for equality by key and value.
+    function filtersEqual(a, b) {
+        const aKeys = Object.keys(a);
+        const bKeys = Object.keys(b);
+        if (aKeys.length !== bKeys.length) return false;
+        return aKeys.every(k => JSON.stringify(a[k]) === JSON.stringify(b[k]));
+    }
+
+
+    /**
+     * Refreshes the "Consequence" and "Classification" select controls
+     * to reflect the number of matching variants for each option.
+     * Runs with a small delay to ensure filters and data are fully updated.
+     */    
+    function updateTableSelectControls() {
+        setTimeout(function() {
+            let newFilters = getCombinedFilters();
+
+            // Skip update if filters haven't changed
+            if (currentFilters !== null && filtersEqual(newFilters, currentFilters)) {
+                return {}
+            }
+            currentFilters = newFilters
+
+            // Get filtered table data
+            const data = $table.bootstrapTable('getData', { useCurrentPage: false });
+
+            // Update both select controls with new counts
+            var csqSelect = $('select.bootstrap-table-filter-control-consequence')[0];
+            updateSelectWithCounts(csqSelect, allVarCsqs, data, 'consequence')
+
+            var classSelect = $('select.bootstrap-table-filter-control-classification')[0];
+            updateSelectWithCounts(classSelect, allVarClasses, data, 'classification')
+        }, 50);
+    }
+
+
+    /**
+     * After table data loads successfully for the first time:
+     * - Mark table as initialized
+     * - Extract all unique "consequence" and "classification" values
+     * - Initialize the select controls with counts
+     */
+    $table.on('load-success.bs.table', function () {
+        setTimeout(function() {
+            tableInitialized = true;
+            const data = $table.bootstrapTable('getData', { useCurrentPage: false });
+            allVarCsqs = [...new Set(data.map(row => row.consequence))].sort();
+            allVarClasses = [...new Set(data.map(row => row.classification))].sort();
+
+            updateTableSelectControls();
+        }, 1000); // Delay to ensure table is fully rendered
+    });
+
+
+    /**
+     * When table headers are re-rendered (e.g., due to sort/filter changes),
+     * update select controls if the table has already finished initializing.
+     */
+    $table.on('post-header.bs.table', function () {
+        if (!tableInitialized) return;
+        updateTableSelectControls();
+    });
+
+
+    // When an "only" button is clicked
+    $('.only-btn').on('click', function() {
+        // Get target checkbox ID and checkbox group CSS class.
+        const targetId = $(this).data('target');
+        const groupClass = $(this).data('group');
+
+        // Uncheck all checkboxes in a group except the target one.
+        $('.' + groupClass).prop('checked', false);
+        $('#' + targetId).prop('checked', true);
+
+        // Filter table.
+        filterTable();
+        updateVariantCount();
+    });
 });
