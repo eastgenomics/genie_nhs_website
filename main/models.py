@@ -12,6 +12,7 @@ class CancerType(models.Model):
         db_table = 'main_cancer_type'
 
     def __str__(self):
+        """Returns cancer type."""
         return self.cancer_type
 
 
@@ -73,6 +74,7 @@ class Variant(models.Model):
         )
 
     def __str__(self):
+        """Returns CHROM-POS-REF-ALT variant ID."""
         return f"{self.chrom}-{self.pos}-{self.ref}-{self.alt}"
     
 

@@ -19,6 +19,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 # Environment file variables parsing helpers.
 def env_bool(name: str, default: bool = False) -> bool:
+    """Boolean environment variable converter."""
     val = os.getenv(name)
     if val is None:
         return default
@@ -26,6 +27,7 @@ def env_bool(name: str, default: bool = False) -> bool:
 
 
 def env_list(name: str, default: Optional[List[str]] = None) -> List[str]:
+    """List environment variable converter."""
     val = os.getenv(name)
     if not val:
         return default or []
@@ -49,6 +51,12 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DEBUG", default=False)
 
+GOOGLE_ANALYTICS_ID = os.getenv("GOOGLE_ANALYTICS_ID")
+
+USE_WHITENOISE = env_bool("USE_WHITENOISE", default=False)
+
+DB_NAME = os.getenv("DB_NAME") or 'db.sqlite3'
+
 # Enforce SECRET_KEY presence in non-debug environments
 if not SECRET_KEY:
     # Provide dev fallback.
@@ -58,14 +66,16 @@ if not SECRET_KEY:
         raise ImproperlyConfigured(
             "SECRET_KEY must be set when DEBUG is False.")
 
-DATA_FOLDER = os.getenv("DATA_FOLDER") or None
-if DATA_FOLDER:
-    DATA_FOLDER = Path(DATA_FOLDER)
-GENIE_VCF = os.getenv("GENIE_VCF") or None
-if GENIE_VCF and DATA_FOLDER:
+GENIE_VERSION = os.getenv("GENIE_VERSION") or ''
+
+DATA_FOLDER = os.getenv("DATA_FOLDER")
+DATA_FOLDER = Path(DATA_FOLDER) if DATA_FOLDER else BASE_DIR / 'data'
+
+GENIE_VCF = os.getenv("GENIE_VCF")
+if GENIE_VCF:
     GENIE_VCF = DATA_FOLDER / GENIE_VCF
-GENIE_CANCER_TYPES_CSV = os.getenv("GENIE_CANCER_TYPES_CSV") or None
-if GENIE_CANCER_TYPES_CSV and DATA_FOLDER:
+GENIE_CANCER_TYPES_CSV = os.getenv("GENIE_CANCER_TYPES_CSV")
+if GENIE_CANCER_TYPES_CSV:
     GENIE_CANCER_TYPES_CSV = DATA_FOLDER / GENIE_CANCER_TYPES_CSV
 
 ALLOWED_HOSTS = [*env_list("ALLOWED_HOSTS"), "127.0.0.1", "localhost"]
@@ -93,11 +103,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "fontawesomefree",
     "main",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    *(["whitenoise.middleware.WhiteNoiseMiddleware"] if USE_WHITENOISE else []),
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -119,6 +131,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "main.context_processors.project_settings",
             ],
         },
     },
@@ -133,7 +146,7 @@ WSGI_APPLICATION = "nhs_genie_project.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_DIR / "data" / DB_NAME,
     }
 }
 
@@ -169,6 +182,13 @@ STATIC_DIR = BASE_DIR / "static"
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [STATIC_DIR]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+if USE_WHITENOISE:
+    STORAGES = {
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

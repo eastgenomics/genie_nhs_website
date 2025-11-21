@@ -13,6 +13,11 @@ def index(request):
     return render(request, 'main/index.html')
 
 
+def about(request):
+    """A page with information about generation of patient count data."""
+    return render(request, 'main/about.html')
+
+
 def search_view(request):
     """Main website search that is available on all website pages.
 

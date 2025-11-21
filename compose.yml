@@ -2,44 +2,14 @@ services:
   web:
     build: .
     image: nhs-genie
-    container_name: nhs-genie
-    expose:
-      - "8000"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import socket,sys; s=socket.socket(); s.settimeout(3); s.connect(('127.0.0.1',8000)); s.close()"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    volumes:
-      - static_volume:/app/staticfiles
-      - ${DATA_FOLDER}:${DATA_FOLDER}
-    env_file:
-      - .env
-    command: sh -c "python manage.py migrate &&
-      python manage.py collectstatic --noinput &&
-      gunicorn --bind 0.0.0.0:8000 --workers 3 nhs_genie_project.wsgi:application"
-  nginx:
-    build: ./nginx
     ports:
-      - "${PORT}:80"
+      - "${PORT}:8000"
     volumes:
-      - static_volume:/staticfiles
-    depends_on:
-      web:
-        condition: service_healthy
-  db-reset:
-    profiles: ["db-reset"]
-    image: nhs-genie
-    build: .
-    depends_on:
-      web:
-        condition: service_healthy
-    volumes:
-      - ${DATA_FOLDER}:${DATA_FOLDER}
+      - ./data:/app/data
+      - ./staticfiles:/app/staticfiles
     env_file:
       - .env
-    command: sh -c "python db_importer.py"
-
-volumes:
-  static_volume:
+    command: sh -c "
+        python manage.py collectstatic --noinput &&
+        gunicorn --bind 0.0.0.0:8000 --workers 3 nhs_genie_project.wsgi:application
+      "
