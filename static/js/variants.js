@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }, {});
 
         // Compute total number of matching rows
-        all_count = Object.values(counts).reduce((sum, val) => sum + val, 0);
+        const all_count = Object.values(counts).reduce((sum, val) => sum + val, 0);
 
         // Remember currently selected value (to restore it later)
         const current = selectElement.value;
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Skip update if filters haven't changed
             if (currentFilters !== null && filtersEqual(newFilters, currentFilters)) {
-                return {}
+                return;
             }
             currentFilters = newFilters
 

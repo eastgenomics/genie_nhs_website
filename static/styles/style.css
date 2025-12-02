@@ -319,3 +319,11 @@ label.form-check-label-blue:focus,
     border: 1px solid var(--nhs-mid-grey);
     box-shadow: 0 0 0 0.1rem var(--nhs-pale-grey);
 }
+
+.icon-button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+}

@@ -126,12 +126,14 @@
                                 <th data-field="chrom" data-filter-control="input" data-sortable="true" data-width="20" data-halign="center" data-align="center" data-valign="middle">Chrom</th>
                                 <th data-field="pos" data-filter-custom-search="filterCustomIntegerSearch" data-filter-control="input" data-sortable="true" data-width="100" data-halign="center" data-valign="middle">
                                     Position
-                                    <i class="fa-solid fa-xl fa-circle-question alt-info tooltip-click"
-                                        data-bs-toggle="tooltip"
-                                        data-bs-placement="top"
-                                        data-bs-custom-class="tooltip-click"
-                                        title="Supports >N, <N, and range (START-END) number filters (inclusive, i.e. >N = ≥N)."
-                                    ></i>
+                                    <button type="button"
+                                            class="icon-button alt-info tooltip-click"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            data-bs-custom-class="tooltip-click"
+                                            title="Supports >N, <N, and range (START-END) number filters (inclusive, i.e. >N = ≥N).">
+                                        <i class="fa-solid fa-xl fa-circle-question"></i>
+                                    </button>
                                 </th>
                                 <th data-field="consequence" data-filter-control="select" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Consequence</th>
                                 <th data-field="classification" data-filter-control="select" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Classification</th>

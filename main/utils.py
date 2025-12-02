@@ -122,7 +122,7 @@ def get_classification_category(classification: str, hgvs_p: str) -> str:
     classification : str
         GENIE variant classification (e.g. Nonsense_Mutation)
     hgvs_p : str
-        Variant HGVSp notation (e.g. Nonsense_Mutation)
+        Variant HGVSp notation (e.g. p.(Ala2Val))
 
     Returns
     -------

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Process INFO tooltips that are displayed/hidden on click.
-    // "tooltip-click" is an aritificial class added to flag elements
+    // "tooltip-click" is an artificial class added to flag elements
     // with such tooltips.
     const infos = document.querySelectorAll('.tooltip-click');
 
@@ -25,14 +25,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Hide all tooltips if clicking anywhere else
+    // Hide all info tooltips if clicking anywhere else
     document.addEventListener('click', function (e) {
-        document.querySelectorAll('.tooltip-click').forEach(info => {
-        if (!info.contains(e.target)) {
-            const instance = bootstrap.Tooltip.getInstance(info);
-            if (instance) instance.hide();
-            info._tooltipVisible = false;
-        }
+        infos.forEach(info => {
+            if (!info.contains(e.target)) {
+                const instance = bootstrap.Tooltip.getInstance(info);
+                if (instance) instance.hide();
+                info._tooltipVisible = false;
+            }
         });
     });
 });
