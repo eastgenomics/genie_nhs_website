@@ -241,22 +241,21 @@ label.form-check-label:focus,
     
 }
 
-.form-check-input-red:focus, 
-.label-red::after, 
+.form-check-input-red:focus,
 label.form-check-label-red:focus, 
 .form-check-input-red::after, 
 .form-check-input-red:not(:disabled):not(.disabled):active:focus {
     box-shadow: 0 0 0 0.1rem var(--nhs-emergency-services-red);
 }
 
-.form-check-input-orange:checked {
+.form-check-input-yellow:checked {
     background-color: var(--nhs-warm-yellow);
 }
 
-.form-check-input-orange:focus, 
+.form-check-input-yellow:focus, 
 label.form-check-label-orange:focus, 
-.form-check-input-orange::after, 
-.form-check-input-orange:not(:disabled):not(.disabled):active:focus {
+.form-check-input-yellow::after, 
+.form-check-input-yellow:not(:disabled):not(.disabled):active:focus {
     box-shadow: 0 0 0 0.1rem var(--nhs-warm-yellow);
 }
 
