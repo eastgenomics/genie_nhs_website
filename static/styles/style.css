@@ -77,6 +77,14 @@ ol {
   text-decoration: underline;
 }
 
+.alt-info {
+    color: var(--nhs-white);
+}
+
+.alt-info:hover {
+    color: var(--nhs-aqua-green);
+}
+
 .search-box {
     font-size: 14px;
 }
@@ -87,10 +95,6 @@ ol {
 
 .card-1000 { 
     width: min(100%, 1000px);
-}
-
-.ml-30 { 
-    margin-left: 30px;
 }
 
 .ml-50 { 
@@ -166,6 +170,10 @@ ol {
     font-size: 12px;
 }
 
+.form-select {
+    font-size: 12px;
+}
+
 /* Custom table classes */
 .table-variants {
     font-size: 12px;
@@ -213,4 +221,104 @@ td.secondary {
     width: 200% !important;
     z-index: 1000;
     position: relative;
+}
+
+.form-check-input:checked {
+    border: 0;
+}
+
+.form-check-input:focus, 
+label.form-check-label:focus, 
+.form-check-input::after, 
+.form-check-input:not(:disabled):not(.disabled):active:focus {
+    color: var(--nhs-black);
+    outline: 0;
+    border: 0;
+}
+
+.form-check-input-red:checked {
+    background-color: var(--nhs-emergency-services-red);
+    
+}
+
+.form-check-input-red:focus,
+label.form-check-label-red:focus, 
+.form-check-input-red::after, 
+.form-check-input-red:not(:disabled):not(.disabled):active:focus {
+    box-shadow: 0 0 0 0.1rem var(--nhs-emergency-services-red);
+}
+
+.form-check-input-yellow:checked {
+    background-color: var(--nhs-warm-yellow);
+}
+
+.form-check-input-yellow:focus, 
+label.form-check-label-orange:focus, 
+.form-check-input-yellow::after, 
+.form-check-input-yellow:not(:disabled):not(.disabled):active:focus {
+    box-shadow: 0 0 0 0.1rem var(--nhs-warm-yellow);
+}
+
+.form-check-input-green:checked {
+    background-color: var(--nhs-green);
+}
+
+.form-check-input-green:focus, 
+label.form-check-label-green:focus, 
+.form-check-input-green::after, 
+.form-check-input-green:not(:disabled):not(.disabled):active:focus {
+    box-shadow: 0 0 0 0.1rem var(--nhs-green);
+}
+
+.form-check-input-grey:checked {
+    background-color: var(--nhs-mid-grey);
+}
+
+.form-check-input-grey:focus, 
+label.form-check-label-grey:focus, 
+.form-check-input-grey::after, 
+.form-check-input-grey:not(:disabled):not(.disabled):active:focus {
+    box-shadow: 0 0 0 0.1rem var(--nhs-mid-grey);
+}
+
+.form-check-input-blue:checked {
+    background-color: var(--nhs-bright-blue);
+}
+
+.form-check-input-blue:focus, 
+label.form-check-label-blue:focus, 
+.form-check-input-blue::after, 
+.form-check-input-blue:not(:disabled):not(.disabled):active:focus {
+    box-shadow: 0 0 0 0.1rem var(--nhs-bright-blue);
+}
+
+.static-control {
+    pointer-events: none;
+}
+
+.btn-outline-gray {
+    font-size: 11px;
+    color: var(--nhs-black);
+    background-color: var(--nhs-white);
+    border: 1px solid var(--nhs-pale-grey);
+    margin-left: 0.25rem;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+
+.btn-outline-gray:hover,
+.btn-outline-gray:focus,
+.btn-outline-gray:active {
+    border: 1px solid var(--nhs-mid-grey);
+    box-shadow: 0 0 0 0.1rem var(--nhs-pale-grey);
+}
+
+.icon-button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
 }

@@ -1,8 +1,8 @@
-# NHS Genie
+# NHS GENIE
 
 ## Overview
 
-**NHS Genie** is a web application designed for exploring 
+**NHS GENIE** is a web application designed for exploring 
 **GENIE oncology  variant data**. It includes custom variant–patient count 
 datasets generated to assist with variant interpretation according to the
 [UK Somatic Variant Interpretation Guidelines (S-VIG)](https://www.acgs.uk.com/media/12831/svig-uk_guidelines_v10_-_post-acgs_ratification_final_submit01.pdf). 
@@ -63,7 +63,7 @@ CSRF_TRUSTED_ORIGINS
 GOOGLE_ANALYTICS_ID
 ```
 
-### Genie source data
+### GENIE source data
 
 The project expects two source data files to be present in the project's data 
 folder:

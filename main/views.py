@@ -35,6 +35,14 @@ def search_view(request):
         search_key = 'region'
     else:
         search_key = 'gene'
+        
+        # Temporary fix for GENIE v17 data. 
+        # Must be deleted with the homepage warning when fixed.
+        if search_value == 'MEF2B':
+            search_value = 'MEF2BNB-MEF2B'
+        if search_value == 'TENT5C':
+            search_value = 'FAM46C'
+
     query = urlencode({'search_key': search_key, 'search_value': search_value})
     url = f"{reverse('main:variants')}?{query}"
     

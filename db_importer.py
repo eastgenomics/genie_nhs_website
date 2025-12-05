@@ -91,7 +91,7 @@ def import_cancer_types(db) -> None:
     """
 
     if not settings.GENIE_CANCER_TYPES_CSV.is_file():
-        sys.exit(('DB reset was cancelled; Genie cancer types csv file '
+        sys.exit(('DB reset was cancelled; GENIE cancer types csv file '
             'was not found:\n') + str(settings.GENIE_CANCER_TYPES_CSV))
         
     truncate_table(db, 'main_cancer_type')
@@ -124,7 +124,7 @@ def import_cancer_types(db) -> None:
 
 def import_vcf_variants(db) -> None:
     """
-    Import data from the Genie VCF to the variant and variant cancer
+    Import data from the GENIE VCF to the variant and variant cancer
     type patient count tables.
 
     Parameters
@@ -138,7 +138,7 @@ def import_vcf_variants(db) -> None:
     """
 
     if not settings.GENIE_VCF.is_file():
-        sys.exit('DB reset was cancelled; Genie VCF file was not found:\n' + \
+        sys.exit('DB reset was cancelled; GENIE VCF file was not found:\n' + \
             str(settings.GENIE_VCF))
 
     # Get database cursor
@@ -260,13 +260,13 @@ def import_vcf_variants(db) -> None:
             alt = row[4]
 
             # Parse VCF INFO column and store results in a dict.
-            # Note: the current Genie VCF has no flag INFO fields.
+            # Note: the current GENIE VCF has no flag INFO fields.
             info_dict = {}
             for info_item in row[7].split(';'):
                 if '=' in info_item:
                     key, val = info_item.split('=', 1)
                     # Remove total patient count ending which can vary
-                    # in different Genie VCF versions.
+                    # in different GENIE VCF versions.
                     if key.startswith(tuple(CANCER_PC_PREFIXES.keys())):
                         key = key.split('_Count_')[0]
                     info_dict[key] = val
@@ -338,7 +338,7 @@ def import_vcf_variants(db) -> None:
 
 def reset_db():
     """
-    Repopulate NHS Genie database.
+    Repopulate NHS GENIE database.
     
     Returns
     -------

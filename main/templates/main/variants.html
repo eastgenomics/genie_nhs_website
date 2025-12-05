@@ -34,6 +34,49 @@
                             after applying all filters. -->
                         <h6 class="px-0 m-0"><b>Variants:</b> <span id="var-count-text"></span></h6>
                     </div>
+                    <div class="col col-auto">
+                        <div class="vr mt-1" style="height: 34px;"></div>
+                    </div>
+                    <div class="col col-auto pe-0 d-flex gap-1">
+                        <input class="form-check-input form-check-input-red variant-classification-filter" type="checkbox" id="checkbox-ptv-lof" value="PTV LoF" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-red" for="checkbox-ptv-lof">PTV LoF</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-ptv-lof" data-group="variant-classification-filter" aria-label="Show only PTV LoF variants">only</button>
+                    </div>                  
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-red variant-classification-filter" type="checkbox" id="checkbox-non-ptv-lof" value="non-PTV LoF" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-red" for="checkbox-non-ptv-lof">non-PTV LoF</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-non-ptv-lof" data-group="variant-classification-filter" aria-label="Show only non-PTV LoF variants">only</button>
+                    </div>
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-yellow variant-classification-filter" type="checkbox" id="checkbox-miss" value="Missense / Inframe indel" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-orange" for="checkbox-miss">Missense / Inframe indel</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-miss" data-group="variant-classification-filter" aria-label="Show only Missense / Inframe indel variants">only</button>
+                    </div>
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-green variant-classification-filter" type="checkbox" id="checkbox-syn" value="Silent" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-green" for="checkbox-syn">Silent</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-syn" data-group="variant-classification-filter" aria-label="Show only Silent variants">only</button>
+                    </div>
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-grey variant-classification-filter" type="checkbox" id="checkbox-oth" value="Other" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-grey" for="checkbox-oth">Other</label>
+                        <button type="button" class="btn btn-sm btn-outline-gray only-btn" data-target="checkbox-oth" data-group="variant-classification-filter" aria-label="Show only Other variants">only</button>
+                    </div>
+                    <div class="col col-auto">
+                        <a class="primary-link" href="#" id="panel-show-all-variants-modal" data-bs-toggle="modal" data-bs-target="#infoVariantClassificationGroups" aria-label="Show variant classification groups information">
+                            <i class="fa-solid fa-xl fa-circle-question"></i></a>
+                    </div>
+                    <div class="col col-auto">
+                        <div class="vr mt-1" style="height: 34px;"></div>
+                    </div>
+                    <div class="col col-auto pe-0">
+                        <input class="form-check-input form-check-input-blue allele-filter" type="checkbox" id="checkbox-snv" value="SNV" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-blue" for="checkbox-snv">SNVs</label>
+                    </div>
+                    <div class="col col-auto">
+                        <input class="form-check-input form-check-input-blue allele-filter" type="checkbox" id="checkbox-indel" value="INDEL" autocomplete="off" checked>
+                        <label class="form-check-label form-check-label-blue" for="checkbox-indel">Indels</label>
+                    </div>                   
                     <div class="col col-auto ms-auto">
                         * Same nucleotide change patient count 
                         <a class="primary-link" href="{% url 'main:about' %}"><i class="fa-solid fa-xl fa-circle-question"></i></a>
@@ -81,9 +124,20 @@
                             -->
                             <tr class="primary">
                                 <th data-field="chrom" data-filter-control="input" data-sortable="true" data-width="20" data-halign="center" data-align="center" data-valign="middle">Chrom</th>
-                                <th data-field="pos" data-filter-custom-search="filterCustomIntegerSearch" data-filter-control="input" data-filter-control-placeholder="start-end" data-sortable="true" data-width="100" data-halign="center" data-valign="middle">Position</th>
-                                <th data-field="consequence" data-filter-control="input" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Consequence</th>
-                                <th data-field="classification" data-filter-control="input" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Classification</th>
+                                <th data-field="pos" data-filter-custom-search="filterCustomIntegerSearch" data-filter-control="input" data-sortable="true" data-width="100" data-halign="center" data-valign="middle">
+                                    Position
+                                    <button type="button"
+                                            class="icon-button alt-info tooltip-click"
+                                            aria-label="Position filter information"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            data-bs-custom-class="tooltip-click"
+                                            title="Supports >N, <N, and range (START-END) number filters (inclusive, i.e. >N = ≥N).">
+                                        <i class="fa-solid fa-xl fa-circle-question"></i>
+                                    </button>
+                                </th>
+                                <th data-field="consequence" data-filter-control="select" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Consequence</th>
+                                <th data-field="classification" data-filter-control="select" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Classification</th>
                                 <th data-field="hgvs_c" data-filter-custom-search="filterCustomTextSearch" data-filter-control="input" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSc</th>
                                 <th data-field="hgvs_p" data-filter-custom-search="filterCustomTextSearch" data-filter-control="input" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSp</th>
                                 <th data-field="refseq_transcript" data-filter-control="input" data-sortable="true" data-halign="center" data-valign="middle">Transcript</th>
@@ -99,6 +153,9 @@
         </div>
     </div>
 </div>
+<!-- Info modals -->
+{% include 'main/info_modals/var_classification_filters.html' %}
+
 <!-- Load context variables from the django backend -->
 {{ page_context|json_script:"page-context" }}
 <script src="{% static 'js/variants.js' %}?{% now 'U' %}" defer></script>
