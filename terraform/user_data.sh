@@ -100,6 +100,9 @@ rm /tmp/genie.env
 mkdir -p staticfiles data
 chmod 775 staticfiles
 
+# Fix ownership so ubuntu user can manage the app via SSH
+chown -R ubuntu:ubuntu /home/ubuntu/genie_nhs_website
+
 # Build and start the application
 docker compose up --build -d
 

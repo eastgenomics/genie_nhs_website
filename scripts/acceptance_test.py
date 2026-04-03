@@ -369,6 +369,9 @@ def main():
     )
     args = parser.parse_args()
 
+    if args.mode == "parity" and not args.prod_url:
+        parser.error("--prod-url is required when --mode parity")
+
     suite = TestSuite()
 
     if args.mode in ("all", "known-values"):

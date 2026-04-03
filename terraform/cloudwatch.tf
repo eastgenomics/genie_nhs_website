@@ -52,8 +52,6 @@ resource "aws_cloudwatch_metric_alarm" "disk_high" {
   dimensions = {
     InstanceId = aws_instance.genie.id
     path       = "/"
-    device     = "nvme0n1p1"
-    fstype     = "ext4"
   }
   alarm_actions = [aws_sns_topic.genie_alerts[0].arn]
   ok_actions    = [aws_sns_topic.genie_alerts[0].arn]

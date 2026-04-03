@@ -64,6 +64,12 @@ resource "aws_instance" "genie" {
   vpc_security_group_ids = [aws_security_group.genie.id]
   iam_instance_profile   = aws_iam_instance_profile.genie.name
 
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
   root_block_device {
     volume_size = local.ebs_gb
     volume_type = "gp3"

@@ -23,15 +23,15 @@ ssh "${SSH_USER}@${HOST}" bash <<EOF
   echo "Building and starting containers..."
   docker compose up --build -d
 
-  echo "Waiting for health check..."
-  for i in \$(seq 1 30); do
+  echo "Waiting for health check (up to 150s)..."
+  for i in \$(seq 1 75); do
     sleep 2
     if docker compose ps --format json | grep -q '"Health":"healthy"'; then
       echo "Deployment successful - container is healthy."
       exit 0
     fi
   done
-  echo "WARNING: container not healthy after 60s. Check: docker compose logs"
+  echo "WARNING: container not healthy after 150s. Check: docker compose logs"
   exit 1
 EOF
 

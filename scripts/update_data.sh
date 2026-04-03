@@ -29,9 +29,10 @@ VCF_FILENAME=$(basename "$VCF")
 CSV_FILENAME=$(basename "$CSV")
 
 # Validate filenames don't contain characters that would break sed
+unsafe_pattern='[|\\&]'
 for name in "$VCF_FILENAME" "$CSV_FILENAME" "$VERSION"; do
-    if [[ "$name" =~ [|\\] ]]; then
-        echo "ERROR: filename or version contains unsafe characters: $name"
+    if [[ "$name" =~ $unsafe_pattern ]] || [[ "$name" == *$'\n'* ]] || [[ "$name" == *$'\r'* ]]; then
+        echo "ERROR: filename or version contains unsafe sed characters: $name"
         exit 1
     fi
 done

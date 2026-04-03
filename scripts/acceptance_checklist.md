@@ -1,7 +1,7 @@
 # NHS GENIE UAT Acceptance Checklist
 
 **UAT URL:** `__UAT_URL__`
-**Prod URL:** `https://35.179.237.59`
+**Prod URL:** `__PROD_URL__`
 **Date:** ________
 **Tester:** ________
 
