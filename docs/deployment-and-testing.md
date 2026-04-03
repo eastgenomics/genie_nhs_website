@@ -9,6 +9,7 @@
 - [Acceptance Testing](#acceptance-testing)
 - [Full Data Update Workflow](#full-data-update-workflow)
 - [SSL Certificate Setup](#ssl-certificate-setup)
+- [Troubleshooting](#troubleshooting)
 - [Makefile Reference](#makefile-reference)
 
 ---
@@ -34,10 +35,15 @@ These resources must exist before Terraform can be initialised:
    USE_WHITENOISE=1
    PORT=8000
    ALLOWED_HOSTS=beta.genomics-resources.uk
+   DB_NAME=db.sqlite3
    GENIE_VERSION=v17
    GENIE_VCF=Genie_v17_GRCh38_counts_v1.0.0.vcf.gz
    GENIE_CANCER_TYPES_CSV=cancer_types.csv
    ```
+
+   See `README.md` for the full list of supported environment variables.
+
+   **Note:** SSM is used for initial instance provisioning only. Once the instance is running, the data-related variables (`GENIE_VCF`, `GENIE_CANCER_TYPES_CSV`, `GENIE_VERSION`) are managed by `make update-data`, which modifies `.env` in-place on the instance. If the instance is ever re-provisioned from scratch, SSM provides the baseline `.env` again.
 
 4. **EC2 key pair** - Confirm that the `nhs-genie-beta` key pair exists in `eu-west-2`. The private key file must be available locally for SSH access.
 
@@ -50,6 +56,25 @@ These resources must exist before Terraform can be initialised:
 - SSH access to EC2 instances (key pair file)
 - Python 3.8+ (for running acceptance tests)
 - GNU Make
+
+### SSH configuration
+
+The Makefile connects via `ssh ubuntu@<ip>`. For this to work, configure your SSH client to use the correct key pair. Add to `~/.ssh/config`:
+
+```
+Host *.eu-west-2.compute.amazonaws.com
+  User ubuntu
+  IdentityFile ~/.ssh/nhs-genie-beta.pem
+```
+
+Or for a specific IP:
+
+```
+Host nhs-genie
+  HostName <elastic-ip>
+  User ubuntu
+  IdentityFile ~/.ssh/nhs-genie-beta.pem
+```
 
 ### Terraform variables
 
@@ -65,6 +90,8 @@ alert_email     = "alerts@example.com"       # CloudWatch alarm recipient
 ssh_cidr_blocks = ["203.0.113.0/24"]         # Restrict SSH to your network
 ```
 
+**Important:** `ssh_cidr_blocks` has no default value and must be set explicitly. A `terraform plan` will fail without it.
+
 ---
 
 ## Infrastructure Setup
@@ -77,14 +104,15 @@ make tf-init
 
 ### Create Terraform workspaces
 
-Workspaces separate prod and UAT state. Create them once:
+Workspaces separate prod and UAT state. The `prod` workspace must be created manually:
 
 ```bash
 cd terraform
 terraform workspace new prod
-terraform workspace new uat
 cd ..
 ```
+
+The `uat` workspace is created automatically by `make uat-up` if it doesn't exist.
 
 ### Provision production infrastructure
 
@@ -93,7 +121,7 @@ make tf-apply ENV=prod
 ```
 
 This creates:
-- EC2 instance (t3.large, 30 GB encrypted EBS)
+- EC2 instance (t3.large, 30 GB encrypted EBS, IMDSv2 enforced)
 - Security group (SSH restricted to `ssh_cidr_blocks`, HTTP/HTTPS open)
 - Elastic IP (prod only)
 - IAM role with S3, SSM, and CloudWatch permissions
@@ -104,6 +132,12 @@ This creates:
 The EC2 user data script automatically installs Docker, Nginx, CloudWatch agent, clones the repo, pulls `.env` from SSM, and starts the application.
 
 **After the first `terraform apply`:** Check your email and click the SNS subscription confirmation link to enable alarm notifications.
+
+To discover the instance IP after provisioning:
+
+```bash
+cd terraform && TF_WORKSPACE=prod terraform output public_ip
+```
 
 ### Review planned changes
 
@@ -156,13 +190,16 @@ make update-data ENV=prod \
 ```
 
 This SSHes to the instance and runs:
-1. Downloads the VCF and CSV from S3 to the `data/` directory
-2. Updates `.env` with the new filenames and version
-3. Stops the running containers (**downtime starts**)
-4. Runs `db_importer.py` inside a fresh container to re-import the database
-5. Starts the containers (**downtime ends**)
+1. Verifies AWS credentials on the instance
+2. Downloads the VCF and CSV from S3 to the `data/` directory
+3. Updates `.env` with the new filenames and version
+4. Stops the running containers (**downtime starts**)
+5. Runs `db_importer.py` inside a fresh container to re-import the database
+6. Starts the containers (**downtime ends**)
 
 **Expected downtime:** 2-10 minutes depending on VCF size (~1M variants).
+
+**If the import fails:** The database will be empty (tables are truncated before re-import). Re-run `make update-data` to retry. Do not leave the application running with an incomplete import.
 
 ### Verify the database
 
@@ -176,6 +213,8 @@ This SSHes to the instance and queries the database row counts:
 variants: 1000643
 cancer_types: 113
 ```
+
+Check that these counts match the expected values for your data version. For `Genie_v17_GRCh38_counts_v1.0.0.vcf.gz`, the expected variant count is 1,000,643.
 
 ---
 
@@ -204,7 +243,7 @@ Tests against hardcoded expected values from GENIE v17 acceptance testing:
 
 #### Parity tests (UAT vs prod)
 
-Compares JSON responses from the UAT and prod instances for identical queries. Both databases must be loaded from the same VCF for these to pass.
+Compares JSON responses from the UAT and prod instances for identical queries. Both databases **must be loaded from the same VCF** for these to pass.
 
 | Test | Query |
 |------|-------|
@@ -213,15 +252,20 @@ Compares JSON responses from the UAT and prod instances for identical queries. B
 | PT-3 | Variant 2:208248400 cancer type patient counts identical |
 | PT-4 | IDH1 gene - rows and total identical |
 
+**When to use each test type:**
+
+- **Parity tests** validate that the infrastructure and data import pipeline produce identical results on a new instance. Use when loading the *same* VCF version as prod (e.g. after infrastructure changes or pipeline testing).
+- **Known-value tests** validate correctness against documented expected values. Use for both same-version and new-version deployments. When deploying a new data version, update the expected values in `acceptance_test.py` first.
+
 #### Running the tests
 
 Run all tests (known-value + parity against prod):
 
 ```bash
-make acceptance-test PROD_URL=http://35.179.237.59:8000
+make acceptance-test PROD_URL=http://$(cd terraform && TF_WORKSPACE=prod terraform output -raw public_ip):8000
 ```
 
-Run known-value tests only:
+Run known-value tests only (no prod comparison needed):
 
 ```bash
 make acceptance-test-known-values ENV=uat
@@ -277,8 +321,9 @@ The recommended workflow for deploying a new GENIE data release uses a UAT-first
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  2. make update-data ENV=uat VCF=s3://... CSV=s3://... VER=v19  │
+│  2. make update-data ENV=uat VCF=s3://... CSV=s3://... VER=...  │
 │     Downloads data, imports into database                       │
+│     NOTE: app is not functional until this step completes       │
 └────────────────────────────────────┬────────────────────────────┘
                                      │
                                      ▼
@@ -289,8 +334,10 @@ The recommended workflow for deploying a new GENIE data release uses a UAT-first
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  4. make acceptance-test PROD_URL=http://<prod-ip>:8000         │
-│     Runs automated known-value + parity tests                   │
+│  4. make acceptance-test [PROD_URL=...]                          │
+│     Known-value tests always run.                               │
+│     Parity tests run only if PROD_URL is set and both           │
+│     instances have the same data version.                       │
 └────────────────────────────────────┬────────────────────────────┘
                                      │
                                      ▼
@@ -304,7 +351,7 @@ The recommended workflow for deploying a new GENIE data release uses a UAT-first
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  6. make update-data ENV=prod VCF=s3://... CSV=s3://... VER=v19 │
+│  6. make update-data ENV=prod VCF=s3://... CSV=s3://... VER=... │
 │     Applies the same data to production (~2-10 min downtime)    │
 └────────────────────────────────────┬────────────────────────────┘
                                      │
@@ -327,7 +374,7 @@ The recommended workflow for deploying a new GENIE data release uses a UAT-first
 # 1. Spin up UAT
 make uat-up
 
-# 2. Load the new data
+# 2. Load the new data (app is not functional until this completes)
 make update-data ENV=uat \
   VCF=s3://east-genomics-genie/Genie_v19_GRCh38_counts_v1.0.0.vcf.gz \
   CSV=s3://east-genomics-genie/cancer_types.csv \
@@ -336,8 +383,8 @@ make update-data ENV=uat \
 # 3. Verify database
 make verify-db ENV=uat
 
-# 4. Run automated tests
-make acceptance-test PROD_URL=http://35.179.237.59:8000
+# 4. Run automated tests (parity only if using same VCF as prod)
+make acceptance-test
 
 # 5. Manual testing
 make acceptance-checklist
@@ -365,13 +412,45 @@ After provisioning production infrastructure and waiting for DNS propagation (~1
 make ssl CERTBOT_EMAIL=your-email@example.com
 ```
 
-This runs certbot with the Nginx plugin on the prod instance. The certificate auto-renews via a cron job installed during instance bootstrapping.
+This runs certbot with the Nginx plugin on the prod instance. Certbot installs a systemd timer that handles automatic certificate renewal.
 
 Without an email (not recommended for production):
 
 ```bash
 make ssl
 ```
+
+---
+
+## Troubleshooting
+
+### Database import fails mid-way
+
+If `db_importer.py` fails (e.g. due to a malformed VCF or disk space), the database tables will have been truncated and the application will show no data. Re-run `make update-data` with the same arguments to retry the full import.
+
+### Application not functional after `make uat-up`
+
+This is expected. The `user_data.sh` bootstrap starts the Docker container but the `data/` directory is empty. Run `make update-data ENV=uat ...` to load data before testing.
+
+### SSH connection refused
+
+Ensure your SSH key is configured (see [SSH configuration](#ssh-configuration)). The instance may take 2-3 minutes after `make uat-up` to complete bootstrapping. Check progress with:
+
+```bash
+ssh ubuntu@<ip> 'tail -20 /var/log/genie-bootstrap.log'
+```
+
+### CloudWatch disk alarm shows INSUFFICIENT_DATA
+
+The CloudWatch agent may take up to 5 minutes after instance launch to begin publishing metrics. If the alarm remains in `INSUFFICIENT_DATA` after 10 minutes, SSH in and check the agent status:
+
+```bash
+ssh ubuntu@<ip> 'sudo systemctl status amazon-cloudwatch-agent'
+```
+
+### SSM `.env` vs live `.env` divergence
+
+The `.env` file on the instance is initially pulled from SSM during provisioning. After running `make update-data`, the data-related variables (`GENIE_VCF`, `GENIE_CANCER_TYPES_CSV`, `GENIE_VERSION`) are updated in-place. If you re-provision the instance (e.g. `terraform destroy` + `terraform apply`), the SSM version will be restored — you'll need to run `make update-data` again.
 
 ---
 
