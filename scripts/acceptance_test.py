@@ -144,7 +144,7 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
             "KV-2  Region 7:102227600-102227800 total == 35", False, str(e)
         )
 
-    # KV-3: BRAF missense/inframe indel count -> 1260
+    # KV-3: BRAF missense/inframe indel count -> 1349
     print("  Testing BRAF missense count...")
     try:
         data = fetch_json(base_url, "/main/ajax_variants/", {
