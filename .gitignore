@@ -72,3 +72,12 @@ data
 
 # Default static files folder for Nginx/WhiteNoise
 staticfiles
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/override.tf
+terraform/crash.log
+*.tfvars.local
