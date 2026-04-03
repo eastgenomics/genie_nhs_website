@@ -15,7 +15,7 @@ variable "key_pair_name" {
 }
 
 variable "domain" {
-  description = "Base domain for the hosted zone (e.g. genomics-resources.uk)"
+  description = "Delegated domain for the hosted zone (e.g. genie.genomics-resources.uk). Prod uses this directly; UAT uses uat.<domain>."
   type        = string
 }
 

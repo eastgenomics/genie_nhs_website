@@ -63,6 +63,9 @@ ssh "${SSH_USER}@${HOST}" bash <<EOF
   echo "Stopping application (downtime starts)..."
   docker compose stop
 
+  echo "Running migrations..."
+  docker compose run --rm web python manage.py migrate --noinput
+
   echo "Running database import..."
   docker compose run --rm web python db_importer.py
 

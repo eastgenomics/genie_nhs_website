@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "east-genomics-terraform-state"
+    bucket         = "804761969039-genie-terraform-state"
     key            = "genie-nhs-website/terraform.tfstate"
     region         = "eu-west-2"
     dynamodb_table = "terraform-locks"
@@ -33,8 +33,7 @@ locals {
   env       = terraform.workspace
   is_prod   = terraform.workspace == "prod"
   name      = "nhs-genie-${local.env}"
-  subdomain = local.is_prod ? "beta" : "uat"
-  fqdn      = "${local.subdomain}.${var.domain}"
+  fqdn      = local.is_prod ? var.domain : "uat.${var.domain}"
   ec2_type  = local.is_prod ? "t3.large" : "t3.medium"
   ebs_gb    = local.is_prod ? 30 : 20
 }

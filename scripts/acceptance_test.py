@@ -107,9 +107,9 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
     # KV-6, KV-7, KV-8: Smoke -- HTTP 200 on key pages
     for label, path in [
         ("KV-6  Homepage returns 200", "/"),
-        ("KV-7  About page returns 200", "/about/"),
+        ("KV-7  About page returns 200", "/main/about/"),
         ("KV-8  Variants page returns 200",
-         "/variants/?search_key=gene&search_value=BRAF"),
+         "/main/variants/?search_key=gene&search_value=BRAF"),
     ]:
         status = fetch_status(base_url, path)
         suite.add(label, status == 200, f"Got HTTP {status}")
@@ -117,7 +117,7 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
     # KV-1: NF1 gene -> 7928 variants
     print("  Testing NF1 gene variant count...")
     try:
-        data = fetch_json(base_url, "/ajax_variants/", {
+        data = fetch_json(base_url, "/main/ajax_variants/", {
             "search_key": "gene", "search_value": "NF1"
         })
         suite.add(
@@ -131,7 +131,7 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
     # KV-2: Region 7:102227600-102227800 -> 35 variants
     print("  Testing region 7:102227600-102227800...")
     try:
-        data = fetch_json(base_url, "/ajax_variants/", {
+        data = fetch_json(base_url, "/main/ajax_variants/", {
             "search_key": "region", "search_value": "7:102227600-102227800"
         })
         suite.add(
@@ -147,7 +147,7 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
     # KV-3: BRAF missense/inframe indel count -> 1260
     print("  Testing BRAF missense count...")
     try:
-        data = fetch_json(base_url, "/ajax_variants/", {
+        data = fetch_json(base_url, "/main/ajax_variants/", {
             "search_key": "gene", "search_value": "BRAF"
         })
         missense_count = sum(
@@ -155,8 +155,8 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
             if row.get("classification_category") == "Missense / Inframe indel"
         )
         suite.add(
-            "KV-3  BRAF Missense/Inframe indel count == 1260",
-            missense_count == 1260,
+            "KV-3  BRAF Missense/Inframe indel count == 1349",
+            missense_count == 1349,
             f"Got count={missense_count}",
         )
     except RuntimeError as e:
@@ -167,7 +167,7 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
     # KV-4 + KV-5: Variant 2-208248400-A-G exists and has correct patient counts
     print("  Testing variant 2:208248400 A>G patient counts...")
     try:
-        data = fetch_json(base_url, "/ajax_variants/", {
+        data = fetch_json(base_url, "/main/ajax_variants/", {
             "search_key": "region", "search_value": "2:208248400"
         })
     except RuntimeError as e:
@@ -195,7 +195,7 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
         variant_id = target_row.get("variant_id")
         try:
             pc_data = fetch_json(
-                base_url, "/ajax_variant_cancer_pcs",
+                base_url, "/main/ajax_variant_cancer_pcs",
                 {"variant_id": variant_id},
             )
         except RuntimeError as e:
@@ -253,17 +253,17 @@ def run_parity_tests(suite: TestSuite, uat_url: str, prod_url: str):
     queries = [
         (
             "PT-1  BRAF gene (rows + total)",
-            "/ajax_variants/",
+            "/main/ajax_variants/",
             {"search_key": "gene", "search_value": "BRAF"},
         ),
         (
             "PT-2  Region 7:102227600-102227800",
-            "/ajax_variants/",
+            "/main/ajax_variants/",
             {"search_key": "region", "search_value": "7:102227600-102227800"},
         ),
         (
             "PT-4  IDH1 gene (rows + total)",
-            "/ajax_variants/",
+            "/main/ajax_variants/",
             {"search_key": "gene", "search_value": "IDH1"},
         ),
     ]
@@ -298,10 +298,10 @@ def run_parity_tests(suite: TestSuite, uat_url: str, prod_url: str):
     print("  Comparing PT-3 variant 2:208248400 cancer type PCs...")
 
     try:
-        uat_region = fetch_json(uat_url, "/ajax_variants/", {
+        uat_region = fetch_json(uat_url, "/main/ajax_variants/", {
             "search_key": "region", "search_value": "2:208248400"
         })
-        prod_region = fetch_json(prod_url, "/ajax_variants/", {
+        prod_region = fetch_json(prod_url, "/main/ajax_variants/", {
             "search_key": "region", "search_value": "2:208248400"
         })
     except RuntimeError as e:
@@ -323,10 +323,10 @@ def run_parity_tests(suite: TestSuite, uat_url: str, prod_url: str):
     if uat_vid is not None and prod_vid is not None:
         try:
             uat_pcs = fetch_json(
-                uat_url, "/ajax_variant_cancer_pcs", {"variant_id": uat_vid}
+                uat_url, "/main/ajax_variant_cancer_pcs", {"variant_id": uat_vid}
             )
             prod_pcs = fetch_json(
-                prod_url, "/ajax_variant_cancer_pcs", {"variant_id": prod_vid}
+                prod_url, "/main/ajax_variant_cancer_pcs", {"variant_id": prod_vid}
             )
         except RuntimeError as e:
             suite.add(

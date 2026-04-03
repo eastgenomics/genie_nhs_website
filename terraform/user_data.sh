@@ -29,9 +29,29 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
 systemctl enable --now docker
 usermod -aG docker ubuntu
 
-# --- Install Nginx ---
+# --- Install and configure Nginx as reverse proxy ---
 apt-get install -y nginx
+
+cat > /etc/nginx/sites-available/genie <<'NGINX'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINX
+
+rm -f /etc/nginx/sites-enabled/default
+ln -sf /etc/nginx/sites-available/genie /etc/nginx/sites-enabled/genie
 systemctl enable --now nginx
+nginx -t && systemctl reload nginx
 
 # --- Install AWS CLI ---
 apt-get install -y unzip
@@ -98,12 +118,13 @@ cp /tmp/genie.env .env
 rm /tmp/genie.env
 
 mkdir -p staticfiles data
-chmod 775 staticfiles
+chmod 777 staticfiles data
 
 # Fix ownership so ubuntu user can manage the app via SSH
 chown -R ubuntu:ubuntu /home/ubuntu/genie_nhs_website
 
-# Build and start the application
+# Build, run migrations, and start the application
+docker compose run --rm web python manage.py migrate --noinput
 docker compose up --build -d
 
 echo "=== NHS GENIE bootstrap complete ==="
