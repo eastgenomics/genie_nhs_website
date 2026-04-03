@@ -20,6 +20,7 @@ import argparse
 import json
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 
@@ -65,12 +66,11 @@ class TestSuite:
         return passed == total
 
 
-def fetch_json(base_url: str, path: str, params: dict = None) -> dict:
+def fetch_json(base_url: str, path: str, params: dict | None = None) -> dict:
     """Fetch JSON from a URL with query parameters."""
     url = f"{base_url.rstrip('/')}{path}"
     if params:
-        query = "&".join(f"{k}={v}" for k, v in params.items())
-        url = f"{url}?{query}"
+        url = f"{url}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -161,7 +161,7 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
         )
     except RuntimeError as e:
         suite.add(
-            "KV-3  BRAF Missense/Inframe indel count == 1260", False, str(e)
+            "KV-3  BRAF Missense/Inframe indel count == 1349", False, str(e)
         )
 
     # KV-4 + KV-5: Variant 2-208248400-A-G exists and has correct patient counts

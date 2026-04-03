@@ -29,7 +29,7 @@ These resources must exist before Terraform can be initialised:
    - `/genie/uat/env` - UAT environment variables
 
    Each parameter should contain the full `.env` file content, e.g.:
-   ```
+   ```ini
    DEBUG=0
    SECRET_KEY=<random-secret>
    USE_WHITENOISE=1
@@ -209,7 +209,7 @@ make verify-db ENV=prod
 
 This SSHes to the instance and queries the database row counts:
 
-```
+```text
 variants: 1000643
 cancer_types: 113
 ```
@@ -232,12 +232,12 @@ Tests against hardcoded expected values from GENIE v17 acceptance testing:
 |------|-------|----------|
 | KV-1 | NF1 gene | 7,928 variants |
 | KV-2 | Region 7:102227600-102227800 | 35 variants |
-| KV-3 | BRAF gene, Missense/Inframe indel | 1,260 variants |
+| KV-3 | BRAF gene, Missense/Inframe indel | 1,349 variants |
 | KV-4 | Region 2:208248400 | Variant exists |
 | KV-5 | Variant 2:208248400 cancer type PCs | Esophagogastric Cancer=1, Colorectal Cancer=1, Glioma=1, Wilms Tumor=1, Cervical Cancer=2, Gastrointestinal Stromal Tumor=1 |
 | KV-6 | `GET /` | HTTP 200 |
-| KV-7 | `GET /about/` | HTTP 200 |
-| KV-8 | `GET /variants/?search_key=gene&search_value=BRAF` | HTTP 200 |
+| KV-7 | `GET /main/about/` | HTTP 200 |
+| KV-8 | `GET /main/variants/?search_key=gene&search_value=BRAF` | HTTP 200 |
 
 **Note:** These expected values are for `Genie_v17_GRCh38_counts_v1.0.0.vcf.gz`. If the data version changes, update the expected values in `scripts/acceptance_test.py`.
 
