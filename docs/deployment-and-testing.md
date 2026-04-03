@@ -1,0 +1,397 @@
+# NHS GENIE: Deployment and Testing Guide
+
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Infrastructure Setup](#infrastructure-setup)
+- [Deploying the Application](#deploying-the-application)
+- [Updating GENIE Data](#updating-genie-data)
+- [Acceptance Testing](#acceptance-testing)
+- [Full Data Update Workflow](#full-data-update-workflow)
+- [SSL Certificate Setup](#ssl-certificate-setup)
+- [Makefile Reference](#makefile-reference)
+
+---
+
+## Prerequisites
+
+### One-time AWS setup (manual)
+
+These resources must exist before Terraform can be initialised:
+
+1. **S3 bucket for Terraform state** - Create with versioning enabled. Name must match the `bucket` field in `terraform/main.tf` (default: `east-genomics-terraform-state`).
+
+2. **DynamoDB table for state locking** - Create with `LockID` as the partition key (string). Name must match `dynamodb_table` in `terraform/main.tf` (default: `terraform-locks`).
+
+3. **SSM Parameter Store entries** - Store the `.env` file contents as `SecureString` parameters:
+   - `/genie/prod/env` - production environment variables
+   - `/genie/uat/env` - UAT environment variables
+
+   Each parameter should contain the full `.env` file content, e.g.:
+   ```
+   DEBUG=0
+   SECRET_KEY=<random-secret>
+   USE_WHITENOISE=1
+   PORT=8000
+   ALLOWED_HOSTS=beta.genomics-resources.uk
+   GENIE_VERSION=v17
+   GENIE_VCF=Genie_v17_GRCh38_counts_v1.0.0.vcf.gz
+   GENIE_CANCER_TYPES_CSV=cancer_types.csv
+   ```
+
+4. **EC2 key pair** - Confirm that the `nhs-genie-beta` key pair exists in `eu-west-2`. The private key file must be available locally for SSH access.
+
+5. **S3 bucket for GENIE data** - The VCF and cancer types CSV must be uploaded to an S3 bucket. The EC2 instance role is granted read access to this bucket.
+
+### Local machine requirements
+
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.5
+- [AWS CLI](https://aws.amazon.com/cli/) configured with appropriate credentials
+- SSH access to EC2 instances (key pair file)
+- Python 3.8+ (for running acceptance tests)
+- GNU Make
+
+### Terraform variables
+
+Edit `terraform/terraform.tfvars` with actual values before running Terraform:
+
+```hcl
+ami_id          = "ami-046c2381f11878233"   # Ubuntu 24.04 LTS in eu-west-2
+key_pair_name   = "nhs-genie-beta"
+domain          = "genomics-resources.uk"
+route53_zone_id = "Z0123456789ABCDEFGHIJ"   # Your hosted zone ID
+s3_data_bucket  = "my-genie-data-bucket"    # S3 bucket with VCF/CSV
+alert_email     = "alerts@example.com"       # CloudWatch alarm recipient
+ssh_cidr_blocks = ["203.0.113.0/24"]         # Restrict SSH to your network
+```
+
+---
+
+## Infrastructure Setup
+
+### Initialise Terraform
+
+```bash
+make tf-init
+```
+
+### Create Terraform workspaces
+
+Workspaces separate prod and UAT state. Create them once:
+
+```bash
+cd terraform
+terraform workspace new prod
+terraform workspace new uat
+cd ..
+```
+
+### Provision production infrastructure
+
+```bash
+make tf-apply ENV=prod
+```
+
+This creates:
+- EC2 instance (t3.large, 30 GB encrypted EBS)
+- Security group (SSH restricted to `ssh_cidr_blocks`, HTTP/HTTPS open)
+- Elastic IP (prod only)
+- IAM role with S3, SSM, and CloudWatch permissions
+- Route53 A record (`beta.genomics-resources.uk`)
+- CloudWatch alarms for CPU >80% and disk >80% (prod only)
+- SNS topic with email subscription for alarm notifications
+
+The EC2 user data script automatically installs Docker, Nginx, CloudWatch agent, clones the repo, pulls `.env` from SSM, and starts the application.
+
+**After the first `terraform apply`:** Check your email and click the SNS subscription confirmation link to enable alarm notifications.
+
+### Review planned changes
+
+```bash
+make tf-plan ENV=prod
+```
+
+### Destroy infrastructure
+
+```bash
+make tf-destroy ENV=prod
+```
+
+---
+
+## Deploying the Application
+
+To deploy the latest code to a running instance:
+
+```bash
+make deploy ENV=prod
+```
+
+This SSHes to the instance and runs:
+1. `git pull origin main`
+2. `docker system prune -a --force` (cleans old images to prevent disk exhaustion)
+3. `docker compose up --build -d`
+4. Waits up to 150 seconds for the container health check to pass
+
+---
+
+## Updating GENIE Data
+
+### Upload data to S3
+
+Before updating, ensure the new VCF and cancer types CSV are in the S3 data bucket:
+
+```bash
+aws s3 cp Genie_v19_GRCh38_counts_v1.0.0.vcf.gz s3://my-genie-data-bucket/
+aws s3 cp cancer_types.csv s3://my-genie-data-bucket/
+```
+
+### Run the data update
+
+```bash
+make update-data ENV=prod \
+  VCF=s3://my-genie-data-bucket/Genie_v19_GRCh38_counts_v1.0.0.vcf.gz \
+  CSV=s3://my-genie-data-bucket/cancer_types.csv \
+  VER=v19
+```
+
+This SSHes to the instance and runs:
+1. Downloads the VCF and CSV from S3 to the `data/` directory
+2. Updates `.env` with the new filenames and version
+3. Stops the running containers (**downtime starts**)
+4. Runs `db_importer.py` inside a fresh container to re-import the database
+5. Starts the containers (**downtime ends**)
+
+**Expected downtime:** 2-10 minutes depending on VCF size (~1M variants).
+
+### Verify the database
+
+```bash
+make verify-db ENV=prod
+```
+
+This SSHes to the instance and queries the database row counts:
+
+```
+variants: 1000643
+cancer_types: 113
+```
+
+---
+
+## Acceptance Testing
+
+### Automated tests
+
+The acceptance test suite (`scripts/acceptance_test.py`) runs two types of tests:
+
+#### Known-value tests
+
+Tests against hardcoded expected values from GENIE v17 acceptance testing:
+
+| Test | Query | Expected |
+|------|-------|----------|
+| KV-1 | NF1 gene | 7,928 variants |
+| KV-2 | Region 7:102227600-102227800 | 35 variants |
+| KV-3 | BRAF gene, Missense/Inframe indel | 1,260 variants |
+| KV-4 | Region 2:208248400 | Variant exists |
+| KV-5 | Variant 2:208248400 cancer type PCs | Esophagogastric Cancer=1, Colorectal Cancer=1, Glioma=1, Wilms Tumor=1, Cervical Cancer=2, Gastrointestinal Stromal Tumor=1 |
+| KV-6 | `GET /` | HTTP 200 |
+| KV-7 | `GET /about/` | HTTP 200 |
+| KV-8 | `GET /variants/?search_key=gene&search_value=BRAF` | HTTP 200 |
+
+**Note:** These expected values are for `Genie_v17_GRCh38_counts_v1.0.0.vcf.gz`. If the data version changes, update the expected values in `scripts/acceptance_test.py`.
+
+#### Parity tests (UAT vs prod)
+
+Compares JSON responses from the UAT and prod instances for identical queries. Both databases must be loaded from the same VCF for these to pass.
+
+| Test | Query |
+|------|-------|
+| PT-1 | BRAF gene - rows and total identical |
+| PT-2 | Region 7:102227600-102227800 - rows and total identical |
+| PT-3 | Variant 2:208248400 cancer type patient counts identical |
+| PT-4 | IDH1 gene - rows and total identical |
+
+#### Running the tests
+
+Run all tests (known-value + parity against prod):
+
+```bash
+make acceptance-test PROD_URL=http://35.179.237.59:8000
+```
+
+Run known-value tests only:
+
+```bash
+make acceptance-test-known-values ENV=uat
+```
+
+Run the test script directly:
+
+```bash
+python3 scripts/acceptance_test.py \
+  --uat-url http://<uat-ip>:8000 \
+  --prod-url http://<prod-ip>:8000 \
+  --mode all
+```
+
+The script exits with code 0 if all tests pass, 1 if any fail.
+
+### Manual acceptance checklist
+
+Print the checklist with UAT URL pre-filled:
+
+```bash
+make acceptance-checklist
+```
+
+Or with a custom prod URL:
+
+```bash
+make acceptance-checklist PROD_URL=https://beta.genomics-resources.uk
+```
+
+The checklist covers:
+- **Navigation** - Homepage, About page, navbar links
+- **Search** - Gene search, region search, range queries, invalid input handling
+- **Variant table** - Column display, row expansion, classification filters, allele type filters
+- **Visual/UI** - CSS rendering, JS console errors, info modals, version string
+
+---
+
+## Full Data Update Workflow
+
+The recommended workflow for deploying a new GENIE data release uses a UAT-first approach:
+
+```
+                                   ┌─────────────────────────┐
+                                   │  New VCF + CSV in S3    │
+                                   └────────────┬────────────┘
+                                                │
+                                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  1. make uat-up                                                 │
+│     Provisions a short-lived UAT EC2 instance via Terraform     │
+└────────────────────────────────────┬────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  2. make update-data ENV=uat VCF=s3://... CSV=s3://... VER=v19  │
+│     Downloads data, imports into database                       │
+└────────────────────────────────────┬────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  3. make verify-db ENV=uat                                      │
+│     Checks variant and cancer type row counts                   │
+└────────────────────────────────────┬────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  4. make acceptance-test PROD_URL=http://<prod-ip>:8000         │
+│     Runs automated known-value + parity tests                   │
+└────────────────────────────────────┬────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  5. make acceptance-checklist                                   │
+│     Manual browser testing against UAT instance                 │
+└────────────────────────────────────┬────────────────────────────┘
+                                     │
+                                     ▼
+                              [Manual sign-off]
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  6. make update-data ENV=prod VCF=s3://... CSV=s3://... VER=v19 │
+│     Applies the same data to production (~2-10 min downtime)    │
+└────────────────────────────────────┬────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  7. make acceptance-test-known-values ENV=prod                  │
+│     Re-runs known-value tests against prod to confirm           │
+└────────────────────────────────────┬────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  8. make uat-down ENV=uat                                       │
+│     Tears down the UAT instance to save costs                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Example session
+
+```bash
+# 1. Spin up UAT
+make uat-up
+
+# 2. Load the new data
+make update-data ENV=uat \
+  VCF=s3://east-genomics-genie/Genie_v19_GRCh38_counts_v1.0.0.vcf.gz \
+  CSV=s3://east-genomics-genie/cancer_types.csv \
+  VER=v19
+
+# 3. Verify database
+make verify-db ENV=uat
+
+# 4. Run automated tests
+make acceptance-test PROD_URL=http://35.179.237.59:8000
+
+# 5. Manual testing
+make acceptance-checklist
+
+# 6. Promote to production
+make update-data ENV=prod \
+  VCF=s3://east-genomics-genie/Genie_v19_GRCh38_counts_v1.0.0.vcf.gz \
+  CSV=s3://east-genomics-genie/cancer_types.csv \
+  VER=v19
+
+# 7. Verify production
+make acceptance-test-known-values ENV=prod
+
+# 8. Tear down UAT
+make uat-down ENV=uat
+```
+
+---
+
+## SSL Certificate Setup
+
+After provisioning production infrastructure and waiting for DNS propagation (~1-2 minutes):
+
+```bash
+make ssl CERTBOT_EMAIL=your-email@example.com
+```
+
+This runs certbot with the Nginx plugin on the prod instance. The certificate auto-renews via a cron job installed during instance bootstrapping.
+
+Without an email (not recommended for production):
+
+```bash
+make ssl
+```
+
+---
+
+## Makefile Reference
+
+| Target | Required args | Description |
+|--------|--------------|-------------|
+| `tf-init` | - | Initialise Terraform backend and providers |
+| `tf-plan` | `ENV=` | Preview infrastructure changes |
+| `tf-apply` | `ENV=` | Apply infrastructure changes |
+| `tf-destroy` | `ENV=` | Destroy infrastructure |
+| `uat-up` | - | Provision UAT instance (creates workspace if needed) |
+| `uat-down` | `ENV=uat` | Destroy UAT instance (guarded - requires `ENV=uat`) |
+| `deploy` | `ENV=` | Deploy latest code (git pull + Docker rebuild) |
+| `update-data` | `ENV=`, `VCF=`, `CSV=`, `VER=` | Download data from S3 and re-import database |
+| `verify-db` | `ENV=` | Check database row counts via SSH |
+| `acceptance-test` | `PROD_URL=` (optional) | Run automated known-value + parity tests |
+| `acceptance-test-known-values` | `ENV=` | Run known-value tests only |
+| `acceptance-checklist` | `PROD_URL=` (optional) | Print manual acceptance checklist |
+| `ssl` | `CERTBOT_EMAIL=` (optional) | Run certbot on prod |
+| `help` | - | Show all available targets |
+
+Default for `ENV` is `prod`. Run `make help` to see all targets.
