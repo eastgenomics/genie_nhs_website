@@ -10,15 +10,15 @@
 ## Navigation
 
 - [ ] Homepage loads with NHS GENIE logo and search bar
-- [ ] "About" link in navbar navigates to /about/ without errors
+- [ ] "Information about generation of patient count data" link navigates to /about/ without errors
 - [ ] /about/ page renders patient count category descriptions correctly
+- [ ] Clicking the NHS GENIE logo (top left) returns you to the homescreen
 
 ## Search
 
-- [ ] Gene search: enter "BRAF" -> redirects to /variants/, table loads with data
+- [ ] Gene search: enter "TP53" -> redirects to /variants/, table loads with data
 - [ ] Region search: enter "7:140453136-140924929" -> table loads with results
-- [ ] Range search: enter "17:31094689" with POS > operator -> results include downstream variants
-- [ ] Invalid gene (e.g. "FAKEGENE999") -> empty table, no crash
+- [ ] Invalid gene (e.g. "FAKEGENE999") -> empty table, no crash, "no variants were found message"
 
 ## Variant Table
 
@@ -35,7 +35,7 @@
 - [ ] "(?) " info modal opens when clicked next to classification filter
 - [ ] Footer / version string shows correct GENIE version
 
-## Sign-off
+## Automated acceptance tests (optional; for admins)
 
 - [ ] All automated tests passed (`make acceptance-test`)
 - [ ] DB row count verified (`make verify-db`)
