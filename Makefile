@@ -119,10 +119,10 @@ acceptance-checklist: ## Print manual acceptance checklist with UAT URL
 
 .PHONY: ssl
 
-ssl: ## Run certbot on prod instance (post-provisioning, after DNS propagation)
-	$(eval IP := $(call tf_output,prod,public_ip))
-	@if [ -z "$(IP)" ]; then echo "ERROR: could not resolve prod IP"; exit 1; fi
-	$(eval FQDN := $(call tf_output,prod,fqdn))
+ssl: ## Run certbot on ENV instance (post-provisioning, after DNS propagation)
+	$(eval IP := $(call tf_output,$(ENV),public_ip))
+	@if [ -z "$(IP)" ]; then echo "ERROR: could not resolve IP for $(ENV)"; exit 1; fi
+	$(eval FQDN := $(call tf_output,$(ENV),fqdn))
 	@echo "Running certbot for $(FQDN) on $(IP)..."
 	@if [ -n "$(CERTBOT_EMAIL)" ]; then \
 		ssh $(SSH_USER)@$(IP) "sudo certbot --nginx -d $(FQDN) --non-interactive --agree-tos --email $(CERTBOT_EMAIL)"; \

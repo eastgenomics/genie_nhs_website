@@ -53,6 +53,13 @@ ln -sf /etc/nginx/sites-available/genie /etc/nginx/sites-enabled/genie
 systemctl enable --now nginx
 nginx -t && systemctl reload nginx
 
+# --- Install certbot ---
+apt-get install -y python3-venv libaugeas-dev
+python3 -m venv /opt/certbot/
+/opt/certbot/bin/pip install --upgrade pip
+/opt/certbot/bin/pip install certbot certbot-nginx
+ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
+
 # --- Install AWS CLI ---
 apt-get install -y unzip
 curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
