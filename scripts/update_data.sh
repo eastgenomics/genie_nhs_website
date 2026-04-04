@@ -2,22 +2,23 @@
 set -euo pipefail
 
 # Download new GENIE data from S3 and re-import the database.
-# Usage: scripts/update_data.sh --host <ip> --vcf <s3-uri> --csv <s3-uri> --version <string>
+# Usage: scripts/update_data.sh --host <ip> --vcf <s3-uri> --csv <s3-uri> --version <string> [--ssh-opts "..."]
 
 usage() {
-    echo "Usage: $0 --host <ip> --vcf <s3-uri> --csv <s3-uri> --version <string>"
+    echo "Usage: $0 --host <ip> --vcf <s3-uri> --csv <s3-uri> --version <string> [--ssh-opts \"...\"]"
     exit 1
 }
 
-HOST="" VCF="" CSV="" VERSION=""
+HOST="" VCF="" CSV="" VERSION="" SSH_EXTRA_OPTS=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --host)    HOST="$2";    shift 2 ;;
-        --vcf)     VCF="$2";     shift 2 ;;
-        --csv)     CSV="$2";     shift 2 ;;
-        --version) VERSION="$2"; shift 2 ;;
-        *)         usage ;;
+        --host)     HOST="$2";           shift 2 ;;
+        --vcf)      VCF="$2";            shift 2 ;;
+        --csv)      CSV="$2";            shift 2 ;;
+        --version)  VERSION="$2";        shift 2 ;;
+        --ssh-opts) SSH_EXTRA_OPTS="$2"; shift 2 ;;
+        *)          usage ;;
     esac
 done
 
@@ -42,8 +43,8 @@ echo "  VCF: ${VCF}"
 echo "  CSV: ${CSV}"
 echo "  Version: ${VERSION}"
 
-ssh "${SSH_USER}@${HOST}" bash <<EOF
-  set -euo pipefail
+ssh ${SSH_EXTRA_OPTS} "${SSH_USER}@${HOST}" bash <<EOF
+  set -eo pipefail
   cd "${APP_DIR}"
 
   echo "Verifying AWS credentials..."
@@ -64,10 +65,10 @@ ssh "${SSH_USER}@${HOST}" bash <<EOF
   docker compose stop
 
   echo "Running migrations..."
-  docker compose run --rm web python manage.py migrate --noinput
+  docker compose run --rm -T web python manage.py migrate --noinput < /dev/null
 
   echo "Running database import..."
-  docker compose run --rm web python db_importer.py
+  docker compose run --rm -T web python db_importer.py < /dev/null
 
   echo "Starting application..."
   docker compose up -d

@@ -2,16 +2,17 @@
 set -euo pipefail
 
 # Deploy the NHS GENIE application on a remote host.
-# Usage: scripts/deploy.sh <host-ip>
+# Usage: scripts/deploy.sh <host-ip> [ssh-opts]
 
-HOST="${1:?Usage: deploy.sh <host-ip>}"
+HOST="${1:?Usage: deploy.sh <host-ip> [ssh-opts]}"
+SSH_EXTRA_OPTS="${2:-}"
 SSH_USER="ubuntu"
 APP_DIR="/home/ubuntu/genie_nhs_website"
 
 echo "Deploying to ${SSH_USER}@${HOST}..."
 
-ssh "${SSH_USER}@${HOST}" bash <<EOF
-  set -euo pipefail
+ssh ${SSH_EXTRA_OPTS} "${SSH_USER}@${HOST}" bash <<EOF
+  set -eo pipefail
   cd "${APP_DIR}"
 
   echo "Pulling latest code..."

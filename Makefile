@@ -20,8 +20,10 @@ VER           ?=
 PROD_URL      ?=
 CERTBOT_EMAIL ?=
 
-TF_DIR  := terraform
+TF_DIR   := terraform
 SSH_USER := ubuntu
+SSH_KEY  ?= ~/.ssh/nhs-genie.pem
+SSH_OPTS := $(if $(strip $(SSH_KEY)),-i $(SSH_KEY) -o IdentitiesOnly=yes,)
 
 # Read a Terraform output without mutating .terraform/environment
 define tf_output
@@ -66,7 +68,7 @@ uat-down: ## Destroy UAT instance (guarded — only works for ENV=uat)
 deploy: ## Deploy latest code to ENV instance
 	$(eval IP := $(call tf_output,$(ENV),public_ip))
 	@if [ -z "$(IP)" ]; then echo "ERROR: could not resolve IP for $(ENV)"; exit 1; fi
-	bash scripts/deploy.sh $(IP)
+	bash scripts/deploy.sh $(IP) "$(SSH_OPTS)"
 
 # ── Data update ──────────────────────────────────────────────────────────────
 
@@ -78,7 +80,7 @@ update-data: ## Update GENIE data on ENV instance (requires VCF, CSV, VER)
 	@if [ -z "$(VER)" ]; then echo "ERROR: VER= required (e.g. v17)"; exit 1; fi
 	$(eval IP := $(call tf_output,$(ENV),public_ip))
 	@if [ -z "$(IP)" ]; then echo "ERROR: could not resolve IP for $(ENV)"; exit 1; fi
-	bash scripts/update_data.sh --host $(IP) --vcf $(VCF) --csv $(CSV) --version $(VER)
+	bash scripts/update_data.sh --host $(IP) --vcf $(VCF) --csv $(CSV) --version $(VER) --ssh-opts "$(SSH_OPTS)"
 
 # ── Verification ─────────────────────────────────────────────────────────────
 
@@ -88,8 +90,8 @@ verify-db: ## Check DB row counts on ENV instance
 	$(eval IP := $(call tf_output,$(ENV),public_ip))
 	@if [ -z "$(IP)" ]; then echo "ERROR: could not resolve IP for $(ENV)"; exit 1; fi
 	@echo "Checking database on $(SSH_USER)@$(IP)..."
-	@ssh $(SSH_USER)@$(IP) 'cd /home/ubuntu/genie_nhs_website && \
-		docker compose exec -T web python manage.py shell -c \
+	@ssh $(SSH_OPTS) $(SSH_USER)@$(IP) 'cd /home/ubuntu/genie_nhs_website && \
+		docker compose run --rm web python manage.py shell -c \
 		"from main.models import Variant, CancerType; \
 		 print(\"variants:\", Variant.objects.count()); \
 		 print(\"cancer_types:\", CancerType.objects.count())"'
@@ -125,9 +127,9 @@ ssl: ## Run certbot on ENV instance (post-provisioning, after DNS propagation)
 	$(eval FQDN := $(call tf_output,$(ENV),fqdn))
 	@echo "Running certbot for $(FQDN) on $(IP)..."
 	@if [ -n "$(CERTBOT_EMAIL)" ]; then \
-		ssh $(SSH_USER)@$(IP) "sudo certbot --nginx -d $(FQDN) --non-interactive --agree-tos --email $(CERTBOT_EMAIL)"; \
+		ssh $(SSH_OPTS) $(SSH_USER)@$(IP) "sudo certbot --nginx -d $(FQDN) --non-interactive --agree-tos --email $(CERTBOT_EMAIL)"; \
 	else \
-		ssh $(SSH_USER)@$(IP) "sudo certbot --nginx -d $(FQDN) --non-interactive --agree-tos --register-unsafely-without-email"; \
+		ssh $(SSH_OPTS) $(SSH_USER)@$(IP) "sudo certbot --nginx -d $(FQDN) --non-interactive --agree-tos --register-unsafely-without-email"; \
 	fi
 
 # ── Help ─────────────────────────────────────────────────────────────────────

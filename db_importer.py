@@ -266,8 +266,11 @@ def import_vcf_variants(db) -> None:
                 if '=' in info_item:
                     key, val = info_item.split('=', 1)
                     # Remove total patient count ending which can vary
-                    # in different GENIE VCF versions.
-                    if key.startswith(tuple(CANCER_PC_PREFIXES.keys())):
+                    # in different GENIE VCF versions. Only strip keys
+                    # that match the full patient count pattern
+                    # ({PREFIX}_{CANCER}_Count_N_{TOTAL}).
+                    if (key.startswith(tuple(CANCER_PC_PREFIXES.keys()))
+                            and '_Count_N_' in key):
                         key = key.split('_Count_')[0]
                     info_dict[key] = val
 
@@ -298,10 +301,16 @@ def import_vcf_variants(db) -> None:
                 if val == '0':
                     continue
                 # Variant cancer type patient counts names have the
-                # following format:
-                # {COUNT_TYPE}_{CANCER_TYPE}_Count_N_{TOTAL_PATIENT_COUNT}
+                # following format (after _Count_N_ stripping):
+                # {COUNT_TYPE}_{CANCER_TYPE}
+                # Skip any keys that weren't stripped (no matching
+                # cancer type) — e.g. Duplicate_Patient_IDs fields.
                 if key.startswith(tuple(CANCER_PC_PREFIXES.keys())):
                     pc_type_vcf, cancer_type_vcf = key.split('_', 1)
+                    # Skip non-count fields (e.g. Duplicate_Patient_IDs)
+                    # that share the same prefix but aren't cancer types.
+                    if cancer_type_vcf not in cancer_type_ids:
+                        continue
                     if cancer_type_vcf not in var_cancer_pcs:
                         var_cancer_pcs[cancer_type_vcf] = dict(CANCER_PC_DICT)
                     pc_type = CANCER_PC_PREFIXES[pc_type_vcf]
