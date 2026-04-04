@@ -128,6 +128,7 @@ VEP_MISSENSE_AND_INFRAME_INDEL_CONSEQUENCES = {
     'missense_variant',
     'inframe_insertion',
     'inframe_deletion',
+    'protein_altering_variant',
     'stop_lost',
     'start_lost',
 }
