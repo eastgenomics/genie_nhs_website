@@ -142,9 +142,11 @@ def get_variants(search_key: str, search_value: str) -> list:
             'pos': db_variant.pos,
             'allele_type': 'SNV' if is_snv else 'INDEL',
             'consequence': get_worst_csq_display_term(db_variant.consequence),
-            'classification': db_variant.classification,
+            'classification': db_variant.classification or
+                get_worst_csq_display_term(db_variant.consequence),
             'classification_category': get_classification_category(
-                db_variant.classification, db_variant.hgvs_p
+                db_variant.classification, db_variant.consequence,
+                db_variant.hgvs_p,
             ),
             'hgvs_c': _format_hgvs(db_variant.hgvs_c),
             'hgvs_p': _format_hgvs(db_variant.hgvs_p),

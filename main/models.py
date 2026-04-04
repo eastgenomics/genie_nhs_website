@@ -39,8 +39,8 @@ class Variant(models.Model):
     refseq_transcript = models.CharField(max_length=100, help_text='RefSeq', 
         null=True)
     consequence = models.CharField(max_length=600, help_text='Consequence')
-    classification = models.CharField(max_length=600, 
-        help_text='Variant_Classification')
+    classification = models.CharField(max_length=600,
+        help_text='Variant_Classification', null=True, blank=True)
     hgvs_c = models.TextField(help_text='HGVSc', null=True)
     hgvs_p = models.TextField(help_text='HGVSp', null=True)
 

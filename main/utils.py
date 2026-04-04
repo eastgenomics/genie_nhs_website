@@ -89,6 +89,7 @@ def get_worst_csq_display_term(csqs: str) -> str:
     return VEP_CSQ_TERMS[worst_csq]
 
 # Variant classifications grouped by categories.
+# MAF-style terms (used by GENIE v17 and earlier).
 LOF_CLASSIFICATIONS = {
     'Frame_Shift_Del',
     'Frame_Shift_Ins',
@@ -96,8 +97,6 @@ LOF_CLASSIFICATIONS = {
     'Splice_Site',
 }
 
-# A variant is classified as PTV LoF if it has one of these 
-# classifications AND "Ter" AA in HGVSp. 
 LOF_CANDIDATE_PTV_CLASSIFICATIONS = {
     'Frame_Shift_Del',
     'Frame_Shift_Ins',
@@ -112,15 +111,59 @@ MISSENSE_AND_INFRAME_INDEL_CLASSIFICATIONS = {
     'Translation_Start_Site',
 }
 
-def get_classification_category(classification: str, hgvs_p: str) -> str:
+# VEP consequence SO terms (used by GENIE v19+).
+VEP_LOF_CONSEQUENCES = {
+    'frameshift_variant',
+    'stop_gained',
+    'splice_acceptor_variant',
+    'splice_donor_variant',
+}
+
+VEP_LOF_CANDIDATE_PTV_CONSEQUENCES = {
+    'frameshift_variant',
+    'stop_gained',
+}
+
+VEP_MISSENSE_AND_INFRAME_INDEL_CONSEQUENCES = {
+    'missense_variant',
+    'inframe_insertion',
+    'inframe_deletion',
+    'stop_lost',
+    'start_lost',
+}
+
+VEP_SILENT_CONSEQUENCES = {
+    'synonymous_variant',
+}
+
+
+def _get_worst_consequence(consequence: str) -> str:
+    """Return the single worst VEP consequence SO term from a
+    '&'-delimited consequence string."""
+    csqs = consequence.replace(',', '&').split('&')
+    known = [c for c in csqs if c in VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT]
+    if not known:
+        return ''
+    return min(known, key=lambda c: VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT[c])
+
+
+def get_classification_category(
+    classification: str | None, consequence: str | None, hgvs_p: str
+) -> str:
     """
-    Return variant classification category based on its classification
-    and HGVSp notation.
+    Return variant classification category based on its MAF classification
+    (v17) or VEP consequence (v19+), and HGVSp notation.
+
+    Uses MAF classification when available; falls back to VEP consequence.
 
     Parameters
     ----------
-    classification : str
-        GENIE variant classification (e.g. Nonsense_Mutation)
+    classification : str or None
+        GENIE MAF variant classification (e.g. Nonsense_Mutation).
+        None or empty for v19+ data.
+    consequence : str or None
+        VEP consequence string, possibly '&'-delimited
+        (e.g. "frameshift_variant" or "missense_variant&NMD_transcript_variant").
     hgvs_p : str
         Variant HGVSp notation (e.g. p.(Ala2Val))
 
@@ -130,14 +173,36 @@ def get_classification_category(classification: str, hgvs_p: str) -> str:
         Variant classification category: "PTV LoF", "non-PTV LoF",
         "Missense / Inframe indel", "Silent", "Other".
     """
-    if (classification in LOF_CANDIDATE_PTV_CLASSIFICATIONS 
+    if classification:
+        # MAF-based classification (v17 and earlier)
+        if (classification in LOF_CANDIDATE_PTV_CLASSIFICATIONS
+                and hgvs_p and 'Ter' in hgvs_p):
+            return 'PTV LoF'
+        elif classification in LOF_CLASSIFICATIONS:
+            return 'non-PTV LoF'
+        elif classification in MISSENSE_AND_INFRAME_INDEL_CLASSIFICATIONS:
+            return 'Missense / Inframe indel'
+        elif classification == 'Silent':
+            return 'Silent'
+        else:
+            return 'Other'
+
+    # VEP consequence-based classification (v19+)
+    if not consequence:
+        return 'Other'
+
+    worst = _get_worst_consequence(consequence)
+    if not worst:
+        return 'Other'
+
+    if (worst in VEP_LOF_CANDIDATE_PTV_CONSEQUENCES
             and hgvs_p and 'Ter' in hgvs_p):
         return 'PTV LoF'
-    elif classification in LOF_CLASSIFICATIONS:
+    elif worst in VEP_LOF_CONSEQUENCES:
         return 'non-PTV LoF'
-    elif classification in MISSENSE_AND_INFRAME_INDEL_CLASSIFICATIONS:
+    elif worst in VEP_MISSENSE_AND_INFRAME_INDEL_CONSEQUENCES:
         return 'Missense / Inframe indel'
-    elif classification == 'Silent':
+    elif worst in VEP_SILENT_CONSEQUENCES:
         return 'Silent'
     else:
         return 'Other'
