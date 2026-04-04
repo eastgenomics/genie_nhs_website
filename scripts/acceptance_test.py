@@ -24,6 +24,20 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 
+
+def validate_base_url(url: str, arg_name: str) -> str:
+    """Validate that a URL uses http:// or https:// scheme."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        raise argparse.ArgumentTypeError(
+            f"{arg_name} must use http:// or https:// (got: {url})"
+        )
+    if not parsed.netloc:
+        raise argparse.ArgumentTypeError(
+            f"{arg_name} must include a host (got: {url})"
+        )
+    return url.rstrip("/")
+
 # ── Colours (disabled when not a TTY) ────────────────────────────────────────
 
 if sys.stdout.isatty():
@@ -231,6 +245,13 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
                     f"{cancer_type}: expected={expected_count}, got={actual}"
                 )
 
+        unexpected = {
+            ct: count for ct, count in actual_pcs.items()
+            if ct not in expected_pcs
+        }
+        if unexpected:
+            mismatches.append(f"Unexpected non-zero counts: {unexpected}")
+
         suite.add(
             "KV-5  Variant 2:208248400 cancer type patient counts match",
             len(mismatches) == 0,
@@ -368,6 +389,9 @@ def main():
         help="Test mode (default: all)",
     )
     args = parser.parse_args()
+    args.uat_url = validate_base_url(args.uat_url, "--uat-url")
+    if args.prod_url:
+        args.prod_url = validate_base_url(args.prod_url, "--prod-url")
 
     if args.mode == "parity" and not args.prod_url:
         parser.error("--prod-url is required when --mode parity")
