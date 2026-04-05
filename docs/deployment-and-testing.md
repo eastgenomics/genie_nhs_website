@@ -2,6 +2,7 @@
 
 ## Table of Contents
 
+- [How It All Fits Together](#how-it-all-fits-together)
 - [Prerequisites](#prerequisites)
 - [Infrastructure Setup](#infrastructure-setup)
 - [Deploying the Application](#deploying-the-application)
@@ -11,6 +12,99 @@
 - [SSL Certificate Setup](#ssl-certificate-setup)
 - [Troubleshooting](#troubleshooting)
 - [Makefile Reference](#makefile-reference)
+
+---
+
+## How It All Fits Together
+
+If you're new to infrastructure as code (IaC) and Terraform, this section explains how the
+different pieces relate to each other before diving into the details.
+
+### What is infrastructure as code?
+
+Traditionally, setting up a server means clicking through the AWS console — creating an EC2
+instance, configuring security groups, setting up DNS, etc. Infrastructure as code replaces
+this with configuration files that describe the desired state. You run a single command and
+the tool (Terraform) creates or updates everything to match.
+
+**Benefits:** Repeatable (spin up identical UAT/prod environments), version-controlled
+(changes are tracked in Git), reviewable (PRs for infrastructure changes), and disposable
+(tear down and recreate at will).
+
+### Architecture overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Your local machine                           │
+│                                                                     │
+│  ┌──────────┐    ┌──────────────┐    ┌───────────────────────────┐  │
+│  │ Makefile  │───>│   Terraform  │───>│  AWS (genie-website acct) │  │
+│  │           │    │  terraform/  │    │                           │  │
+│  │ make ...  │    │  *.tf files  │    │  EC2, IAM, Route53, etc.  │  │
+│  └─────┬─────┘   └──────────────┘    └─────────────┬─────────────┘  │
+│        │                                            │                │
+│        │         ┌──────────────┐                   │                │
+│        └────────>│   Scripts    │──── SSH ──────────>│                │
+│                  │  deploy.sh   │                    │                │
+│                  │  update_data │              ┌─────┴──────┐        │
+│                  └──────────────┘              │ EC2 Server │        │
+│                                               │            │        │
+│  ┌──────────────────┐                         │  Docker     │        │
+│  │ acceptance_test.py│──── HTTP ──────────────>│  ├ Django   │        │
+│  │ (runs locally)    │                        │  ├ Gunicorn │        │
+│  └──────────────────┘                         │  └ SQLite   │        │
+│                                               │            │        │
+│                                               │  Nginx ─┐  │        │
+│                                               │  (host) │  │        │
+│                                               └─────────┘  │        │
+│                                    https://genie.genomics- │        │
+│                                    resources.uk ───────────┘        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Key components and what they do
+
+| Component | Location | Purpose |
+|---|---|---|
+| **Terraform files** (`terraform/*.tf`) | Repo | Describe the AWS infrastructure — what to create and how to configure it |
+| **Terraform state** (S3 bucket) | AWS | Tracks what Terraform has created so it knows what to update or delete |
+| **Terraform workspaces** | Terraform | Separate state for each environment (prod, uat, beta) using the same `.tf` files |
+| **user_data.sh** | `terraform/` | Bootstrap script that runs once when a new EC2 instance starts — installs Docker, Nginx, clones the repo |
+| **Makefile** | Repo root | Single entry point for all operations — wraps Terraform and SSH commands |
+| **deploy.sh** | `scripts/` | SSHes to the server, pulls latest code, rebuilds Docker |
+| **update_data.sh** | `scripts/` | SSHes to the server, downloads VCF from S3, re-imports the database |
+| **acceptance_test.py** | `scripts/` | Runs from your machine, makes HTTP requests to the website, checks responses |
+| **SSM Parameter Store** | AWS | Stores the `.env` file securely — pulled by `user_data.sh` during bootstrap |
+
+### How environments work
+
+Terraform workspaces let you use the same configuration files to create separate,
+independent environments. Each workspace has its own state (what resources exist) and
+its own DNS name:
+
+```
+terraform/                         AWS
+  *.tf files  ─── workspace "prod" ──> genie.genomics-resources.uk     (t3.large, 30GB, EIP, alarms)
+              ─── workspace "uat"  ──> uat.genie.genomics-resources.uk  (t3.medium, 20GB, no alarms)
+              ─── workspace "beta" ──> beta.genie.genomics-resources.uk (t3.medium, 20GB, no alarms)
+```
+
+Non-prod environments are designed to be short-lived — spin up for testing, tear down when done.
+
+### Typical workflow at a glance
+
+```
+You type:                          What happens:
+─────────                          ──────────────
+make tf-init                       Downloads Terraform providers, connects to state bucket
+make uat-up                        Creates EC2 + security group + DNS + IAM role for UAT
+make update-data ENV=uat VCF=...   SSHes in, downloads VCF from S3, imports into SQLite
+make verify-db ENV=uat             SSHes in, queries SQLite row counts
+make acceptance-test               Runs Python test script against the website over HTTP
+make uat-down ENV=uat              Destroys all UAT resources (EC2, DNS record, etc.)
+```
+
+The rest of this document covers each step in detail.
 
 ---
 
