@@ -25,7 +25,7 @@
 - [ ] Table shows columns: Chr, Pos, Allele type, Consequence, MAF classification, HGVSc, HGVSp, Gene, Transcript, All, Solid, HaemOnc
 - [ ] "+" button expands row detail subtable (cancer type patient counts load via AJAX)
 - [ ] Classification filter (e.g. select only "PTV LoF") -> table updates correctly
-- [ ] Allele type filter (SNV / INDEL toggle) -> table updates correctly
+- [ ] Consequence filter (PTV etc toggles) -> table updates correctly
 - [ ] Column search boxes filter results correctly
 
 ## Visual / UI
