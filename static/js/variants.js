@@ -418,8 +418,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const targetId = $(this).data('target');
         const groupClass = $(this).data('group');
 
-        // Uncheck all checkboxes in a group except the target one.
-        $('.' + groupClass).prop('checked', false);
+        // Uncheck all checkboxes in a group except the target one
+        // and static checkboxes on the info modal.
+        $('.' + groupClass + ':not(.static-control)').prop('checked', false);
         $('#' + targetId).prop('checked', true);
 
         // Filter table.
