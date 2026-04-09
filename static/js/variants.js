@@ -3,8 +3,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const context = JSON.parse(document.getElementById('page-context').textContent);
 
     // List of checkboxes used to filter variants based on their
-    // 1. Consequence (e.g. PTV LoF, Silent)
-    const $csqFilters = $('.variant-consequence-filter');
+    // 1. Classification (e.g. PTV LoF, Silent)
+    // Note: exclude static checkboxes from the info modal (var_classification_filters.html).
+    const $csqFilters = $('.variant-consequence-filter:not(.static-control)');
     // 2. Allele type (e.g. SNVs, Indels)
     const $alleleFilters = $('.allele-filter');
     // All checkbox filters. 
@@ -88,14 +89,16 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearFilters() {
         // Clear filters.
         $table.bootstrapTable('clearFilterControl');
-        // Reload table data.
-        $table.bootstrapTable('filterBy', {});
-        // Update the displayed variant count.
-        updateVariantCount();
         // Reset all filter checkboxes.
         $checkboxFilters.each(function() {
-            this.checked = true;
+            // Use default checked values if specified, otherwise assume that default is checked.
+            const defaultChecked = $(this).attr('default-checked')
+            this.checked = (defaultChecked !== undefined) ? defaultChecked === "true" : true;
         });
+        // Reload table data.
+        filterTable()
+        // Update the displayed variant count.
+        updateVariantCount();
     }
 
 
@@ -385,11 +388,15 @@ document.addEventListener('DOMContentLoaded', function () {
      * - Initialize the select controls with counts
      */
     $table.on('load-success.bs.table', function () {
+        // Get consequences and classes based on the table unfiltered data.
+        const data = $table.bootstrapTable('getData', { useCurrentPage: false });
+        allVarCsqs = [...new Set(data.map(row => row.consequence))].sort();
+        
+        // Apply default table filters.
+        clearFilters()
+
         setTimeout(function() {
             tableInitialized = true;
-            const data = $table.bootstrapTable('getData', { useCurrentPage: false });
-            allVarCsqs = [...new Set(data.map(row => row.consequence))].sort();
-
             updateTableSelectControls();
         }, 1000); // Delay to ensure table is fully rendered
     });
