@@ -166,7 +166,7 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
         })
         missense_count = sum(
             1 for row in data.get("rows", [])
-            if row.get("classification_category") == "Missense / Inframe indel"
+            if row.get("consequence_category") == "Missense / Inframe indel"
         )
         suite.add(
             "KV-3  BRAF Missense/Inframe indel count == 1349",

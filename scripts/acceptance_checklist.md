@@ -22,9 +22,9 @@
 
 ## Variant Table
 
-- [ ] Table shows columns: Chr, Pos, Allele type, Consequence, MAF classification, HGVSc, HGVSp, Gene, Transcript, All, Solid, HaemOnc
+- [ ] Table shows columns: Chr, Pos, Consequence, HGVSc, HGVSp, Gene, Transcript, All, Solid, HaemOnc
 - [ ] "+" button expands row detail subtable (cancer type patient counts load via AJAX)
-- [ ] Classification filter (e.g. select only "PTV LoF") -> table updates correctly
+- [ ] Consequence filter (e.g. select only "PTV LoF") -> table updates correctly
 - [ ] Allele type filter (SNV / INDEL toggle) -> table updates correctly
 - [ ] Column search boxes filter results correctly
 
@@ -32,7 +32,7 @@
 
 - [ ] No broken CSS — page renders with correct Bootstrap styling
 - [ ] No JS console errors (check browser developer tools)
-- [ ] "(?) " info modal opens when clicked next to classification filter
+- [ ] "(?) " info modal opens when clicked next to consequence filter
 - [ ] Footer / version string shows correct GENIE version
 
 ## Automated acceptance tests (optional; for admins)

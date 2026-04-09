@@ -299,7 +299,7 @@ make acceptance-checklist PROD_URL=https://beta.genomics-resources.uk
 The checklist covers:
 - **Navigation** - Homepage, About page, navbar links
 - **Search** - Gene search, region search, range queries, invalid input handling
-- **Variant table** - Column display, row expansion, classification filters, allele type filters
+- **Variant table** - Column display, row expansion, consequence filters, allele type filters
 - **Visual/UI** - CSS rendering, JS console errors, info modals, version string
 
 ---

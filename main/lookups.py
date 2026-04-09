@@ -1,5 +1,5 @@
 from main.models import CancerType, Variant, VariantCancerTypePatientCount
-from main.utils import get_worst_csq_display_term, get_classification_category
+from main.utils import get_worst_csq_display_term, get_vep_csq_category
 from functools import lru_cache
 
 
@@ -64,8 +64,8 @@ def get_variant_cancer_type_pcs(variant_id) -> list:
                 var_pc_cancer.same_nucleotide_change_pc,
             'same_amino_acid_change_pc': \
                 var_pc_cancer.same_amino_acid_change_pc,
-            'same_or_downstream_truncating_variants_per_cds_pc': \
-                var_pc_cancer.same_or_downstream_truncating_variants_per_cds_pc,
+            'same_or_downstream_truncating_variants_per_aa_pc': \
+                var_pc_cancer.same_or_downstream_truncating_variants_per_aa_pc,
             'nested_inframe_deletions_per_aa_pc': \
                 var_pc_cancer.nested_inframe_deletions_per_aa_pc,
             'cancer_n': var_pc_cancer.cancer_type.total_patient_count,
@@ -102,6 +102,9 @@ def get_variants(search_key: str, search_value: str) -> list:
         # Split joined HGVS descriptions (replace '&' with ', ')
         new_hgvs = []
         for hgvs in hgvs_str.split('&'):
+            # Format synonymous variants HGVSp.
+            hgvs = hgvs.replace('%3D', '=')
+
             # Add parentheses to HGVSp descriptions.
             if 'p.' in hgvs and 'p.(' not in hgvs:
                 hgvs = f"p.({hgvs.split('p.')[1]})"
@@ -142,11 +145,8 @@ def get_variants(search_key: str, search_value: str) -> list:
             'pos': db_variant.pos,
             'allele_type': 'SNV' if is_snv else 'INDEL',
             'consequence': get_worst_csq_display_term(db_variant.consequence),
-            'classification': db_variant.classification or
-                get_worst_csq_display_term(db_variant.consequence),
-            'classification_category': get_classification_category(
-                db_variant.classification, db_variant.consequence,
-                db_variant.hgvs_p,
+            'consequence_category': get_vep_csq_category(
+                db_variant.consequence, db_variant.hgvs_p,
             ),
             'hgvs_c': _format_hgvs(db_variant.hgvs_c),
             'hgvs_p': _format_hgvs(db_variant.hgvs_p),
