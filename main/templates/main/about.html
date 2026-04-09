@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="container-fluid px-5">
-    <div class="row mt-3 p-4 mx-auto bg-white shadow card-1200">
+    <div class="row mt-3 p-4 mx-auto bg-white shadow card-1000">
         <h2>GENIE {{ GENIE_VERSION }} - Generation of count data</h2>
         <hr>
         <p>Count data are generated to assist with variant interpretation according to the 
@@ -189,8 +189,8 @@
                 <tr>
                     <th>Count type</th>
                     <th>Cancer grouping</th>
-                    <th class="text-end">c.807C>G</th>
-                    <th class="text-end">c.805A>C</th>
+                    <th class="text-end">c.807C&gt;G</th>
+                    <th class="text-end">c.805A&gt;C</th>
                 </tr>
             </thead>
             <tbody>
@@ -546,7 +546,7 @@
         <ul>
             <li>1118 variants which were not annotated against a gene (empty VEP symbol) were removed.</li>
             <li>3 variants were removed due to a mismatch with the GRCh37 reference when converting from MAF to VCF description.</li>
-            <li>830 variants failed to liftover from GRCh37 -> GRCh38 and were removed.</li>
+            <li>830 variants failed to liftover from GRCh37 -&gt; GRCh38 and were removed.</li>
             <li>2 variants on contig 22_KI270928v1_alt were removed.</li>
         </ul>
     </div>
