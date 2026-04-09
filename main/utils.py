@@ -60,16 +60,19 @@ VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT = {
 VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT = dict(enumerate(VEP_CSQ_TERMS))
 
 
-def get_worst_csq_display_term(csqs: str) -> str:
+def get_worst_csq(csqs: str, display_term=False) -> str:
     """
-    Return the most severe consequence (human-readable display term) from an
-    Ensembl VEP consequences string.
+    Return the most severe consequence from an Ensembl VEP consequences string
+    (optionally, as a human-readable display term).
 
     Parameters
     ----------
     csqs : str
         VEP consequences delimited by '&' (standard) or ',' (tolerated), e.g.
         "non_coding_transcript_exon_variant&non_coding_transcript_variant"
+    display_term: bool
+        If true, returns most severe consequence display term, otherwise
+        return raw term.
 
     Returns
     -------
@@ -86,7 +89,7 @@ def get_worst_csq_display_term(csqs: str) -> str:
     worst_csq_index = min(VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT[csq] 
                           for csq in csqs_list)
     worst_csq = VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT[worst_csq_index]
-    return VEP_CSQ_TERMS[worst_csq]
+    return VEP_CSQ_TERMS[worst_csq] if display_term else worst_csq
 
 # Variant VEP consequences terms grouped by categories.
 LOF_VEP_CSQS_TERMS = {
@@ -121,7 +124,7 @@ def get_vep_csq_category(csq: str, hgvs_p: str) -> str:
     Parameters
     ----------
     csq : str
-        Variant vep consequence term (e.g. stop_gained)
+        Variant vep consequence term(s) (e.g. stop_gained)
     hgvs_p : str
         Variant HGVSp notation (e.g. p.(Ala2Val))
 
@@ -131,14 +134,16 @@ def get_vep_csq_category(csq: str, hgvs_p: str) -> str:
         Variant vep consequence category: "PTV LoF", "non-PTV LoF",
         "Missense / Inframe indel", "Silent", "Other".
     """
-    if (csq in LOF_CANDIDATE_PTV_VEP_CSQS_TERMS 
+    worst_csq = get_worst_csq(csq)
+
+    if (worst_csq in LOF_CANDIDATE_PTV_VEP_CSQS_TERMS 
             and hgvs_p and 'Ter' in hgvs_p and 'ext' not in hgvs_p):
         return 'PTV LoF'
-    elif csq in LOF_VEP_CSQS_TERMS:
+    elif worst_csq in LOF_VEP_CSQS_TERMS:
         return 'non-PTV LoF'
-    elif csq in MISSENSE_AND_INFRAME_INDEL_VEP_CSQS_TERMS:
+    elif worst_csq in MISSENSE_AND_INFRAME_INDEL_VEP_CSQS_TERMS:
         return 'Missense / Inframe indel'
-    elif csq == 'synonymous_variant':
+    elif worst_csq == 'synonymous_variant':
         return 'Silent'
     else:
         return 'Other'

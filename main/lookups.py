@@ -1,5 +1,5 @@
 from main.models import CancerType, Variant, VariantCancerTypePatientCount
-from main.utils import get_worst_csq_display_term, get_vep_csq_category
+from main.utils import get_worst_csq, get_vep_csq_category
 from functools import lru_cache
 
 
@@ -144,7 +144,9 @@ def get_variants(search_key: str, search_value: str) -> list:
             'chrom': db_variant.chrom,
             'pos': db_variant.pos,
             'allele_type': 'SNV' if is_snv else 'INDEL',
-            'consequence': get_worst_csq_display_term(db_variant.consequence),
+            'consequence': get_worst_csq(
+                db_variant.consequence, display_term=True
+            ),
             'consequence_category': get_vep_csq_category(
                 db_variant.consequence, db_variant.hgvs_p,
             ),
