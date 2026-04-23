@@ -21,8 +21,8 @@ from main.utils import get_worst_csq_display_term
 CANCER_PC_PREFIXES = {
     'SameNucleotideChange': 'same_nucleotide_change_pc',
     'SameAminoAcidChange': 'same_amino_acid_change_pc',
-    'SameOrDownstreamTruncatingVariantsPerCDS': \
-        'same_or_downstream_truncating_variants_per_cds_pc',
+    'SameOrDownstreamTruncatingVariantsPerAA': \
+        'same_or_downstream_truncating_variants_per_aa_pc',
     'NestedInframeDeletionsPerAA': 'nested_inframe_deletions_per_aa_pc',
 }
 # A dict template for VariantCancerTypePatientCount row data without

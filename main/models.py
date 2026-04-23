@@ -84,7 +84,7 @@ class VariantCancerTypePatientCount(models.Model):
 
     same_nucleotide_change_pc = models.PositiveIntegerField()
     same_amino_acid_change_pc = models.PositiveIntegerField()
-    same_or_downstream_truncating_variants_per_cds_pc = \
+    same_or_downstream_truncating_variants_per_aa_pc = \
         models.PositiveIntegerField()
     nested_inframe_deletions_per_aa_pc = models.PositiveIntegerField()
 
