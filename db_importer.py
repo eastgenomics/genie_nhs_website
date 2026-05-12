@@ -223,7 +223,29 @@ def import_vcf_variants(db) -> None:
         if not most_severe_csq:
             sys.exit('Failed to identify the most severe consequence from '
                 f'"{csqs}". Ensure consequences are delimited by "&" (or ",") '
-                'and that all terms are present in VEP_CSQ_TERMS.')        
+                'and that all terms are present in VEP_CSQ_TERMS.')
+
+    def _is_cancer_type_count_key(key: str) -> bool:
+        """
+        Check whether VCF INFO key is a cancer patient count INFO field
+        (e.g. SameAminoAcidChange_All_Cancers_Count_N_208523).
+        Duplicate patient IDs and count fields that start with the 
+        same prefixes are ignored.
+        Parameters
+        ----------
+        key: str
+            VCF INFO key.
+        
+        Returns
+        -------
+        Bool
+        """
+        if (key.startswith(tuple(CANCER_PC_PREFIXES.keys())) and
+                not key.endswith('_Patient_IDs') and
+                not key.endswith('_Duplicate_Patient_Count')):
+            return True
+        else:
+            return False     
 
     # Counter to store the total number of processed variants.
     count = 0
@@ -267,8 +289,8 @@ def import_vcf_variants(db) -> None:
                     key, val = info_item.split('=', 1)
                     # Remove total patient count ending which can vary
                     # in different GENIE VCF versions.
-                    if key.startswith(tuple(CANCER_PC_PREFIXES.keys())):
-                        key = key.split('_Count_')[0]
+                    if _is_cancer_type_count_key(key):
+                         key = key.split('_Count_')[0]
                     info_dict[key] = val
 
                     if key == 'Consequence':
@@ -300,12 +322,13 @@ def import_vcf_variants(db) -> None:
                 # Variant cancer type patient counts names have the
                 # following format:
                 # {COUNT_TYPE}_{CANCER_TYPE}_Count_N_{TOTAL_PATIENT_COUNT}
-                if key.startswith(tuple(CANCER_PC_PREFIXES.keys())):
+                if _is_cancer_type_count_key(key):
                     pc_type_vcf, cancer_type_vcf = key.split('_', 1)
                     if cancer_type_vcf not in var_cancer_pcs:
                         var_cancer_pcs[cancer_type_vcf] = dict(CANCER_PC_DICT)
                     pc_type = CANCER_PC_PREFIXES[pc_type_vcf]
-                    var_cancer_pcs[cancer_type_vcf][pc_type] = int(val)
+                    if key.endswith("_Count"):
+                        var_cancer_pcs[cancer_type_vcf][pc_type] = int(val)
             
             # Construct a variant cancer type row with values from the 
             # VCF in the same order as the model attribute names in the 

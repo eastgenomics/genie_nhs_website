@@ -3,12 +3,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const context = JSON.parse(document.getElementById('page-context').textContent);
 
     // List of checkboxes used to filter variants based on their
-    // 1. Classification (e.g. PTV LoF, Silent)
-    const $classFilters = $('.variant-classification-filter');
+    // 1. Consequence (e.g. PTV LoF, Silent)
+    // Exclude static checkboxes from the info modal (var_classification_filters.html)
+    const $csqFilters = $('.variant-consequence-filter:not(.static-control)');
     // 2. Allele type (e.g. SNVs, Indels)
     const $alleleFilters = $('.allele-filter');
     // All checkbox filters. 
-    const $checkboxFilters = $([...$classFilters, ...$alleleFilters])
+    const $checkboxFilters = $([...$csqFilters, ...$alleleFilters])
 
     // Get variant extended row subtable ID.
     function getVariantCancerTypesSubtableID(variantID) {
@@ -88,16 +89,17 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearFilters() {
         // Clear filters.
         $table.bootstrapTable('clearFilterControl');
-        // Reload table data.
-        $table.bootstrapTable('filterBy', {});
-        // Update the displayed variant count.
-        updateVariantCount();
         // Reset all filter checkboxes.
         $checkboxFilters.each(function() {
-            this.checked = true;
+            // Use default checked values if specified, otherwise assume that default is checked.
+            const defaultChecked = $(this).attr('default-checked')
+            this.checked = (defaultChecked !== undefined) ? defaultChecked === "true" : true;
         });
-    }
-
+        // Reload table data.
+        filterTable()
+        // Update the displayed variant count.
+        updateVariantCount();
+    };
 
     // Clear filters when user clicks on the button.
     $('#clear-filters-btn').on('click', clearFilters);
@@ -246,16 +248,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Filter table based on selected variant categories and allele types.
     function filterTable() {
-        // Classification and Allele type checkbox values are the same as 
-        // values in classification_category and allele_type columns.
-        const selectedClassFilters = $classFilters.filter(':checked').map(function() {
+        // Consequence and Allele type checkbox values are the same as 
+        // values in consequence_category and allele_type columns.
+        const selectedCsqFilters = $csqFilters.filter(':checked').map(function() {
             return $(this).val();
         }).get();
         const selectedAlleleFilters = $alleleFilters.filter(':checked').map(function() {
             return $(this).val();
         }).get();
         $table.bootstrapTable('filterBy', {
-            classification_category: selectedClassFilters,
+            consequence_category: selectedCsqFilters,
             allele_type: selectedAlleleFilters,
         });
     }
@@ -272,8 +274,8 @@ document.addEventListener('DOMContentLoaded', function () {
      * Bootstrap Table triggers multiple "post-header.bs.table" events during
      * the initial load, both before and after "load-success.bs.table".
      *
-     * The "Consequence" and "Classification" selects list all unfiltered options
-     * and don't update when filters are applied, so they may show options with
+     * The "Consequence" select lists all unfiltered options
+     * when filters are applied, so they may show options with
      * no matching results.
      *
      * To improve usability, each option displays the count of matching variants
@@ -283,9 +285,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Tracks whether the table has completed its first successful load
     let tableInitialized = false
-    // Lists of all possible "Consequence" and "Classification" values (from unfiltered data)
+    // Lists of all possible "Consequence" values (from unfiltered data)
     let allVarCsqs = []
-    let allVarClasses = []
     // Stores the last known filter set to detect when filters change
     let currentFilters = null;
 
@@ -355,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     /**
-     * Refreshes the "Consequence" and "Classification" select controls
+     * Refreshes the "Consequence" select controls
      * to reflect the number of matching variants for each option.
      * Runs with a small delay to ensure filters and data are fully updated.
      */    
@@ -375,9 +376,6 @@ document.addEventListener('DOMContentLoaded', function () {
             // Update both select controls with new counts
             var csqSelect = $('select.bootstrap-table-filter-control-consequence')[0];
             updateSelectWithCounts(csqSelect, allVarCsqs, data, 'consequence')
-
-            var classSelect = $('select.bootstrap-table-filter-control-classification')[0];
-            updateSelectWithCounts(classSelect, allVarClasses, data, 'classification')
         }, 50);
     }
 
@@ -385,16 +383,19 @@ document.addEventListener('DOMContentLoaded', function () {
     /**
      * After table data loads successfully for the first time:
      * - Mark table as initialized
-     * - Extract all unique "consequence" and "classification" values
+     * - Extract all unique "consequence" values
      * - Initialize the select controls with counts
      */
     $table.on('load-success.bs.table', function () {
+        // Get consequences and classes based on the table unfiltered data.
+        const data = $table.bootstrapTable('getData', { useCurrentPage: false });
+        allVarCsqs = [...new Set(data.map(row => row.consequence))].sort();
+
+        // Apply default table filters.
+        clearFilters()
+
         setTimeout(function() {
             tableInitialized = true;
-            const data = $table.bootstrapTable('getData', { useCurrentPage: false });
-            allVarCsqs = [...new Set(data.map(row => row.consequence))].sort();
-            allVarClasses = [...new Set(data.map(row => row.classification))].sort();
-
             updateTableSelectControls();
         }, 1000); // Delay to ensure table is fully rendered
     });
