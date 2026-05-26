@@ -327,8 +327,7 @@ def import_vcf_variants(db) -> None:
                     if cancer_type_vcf not in var_cancer_pcs:
                         var_cancer_pcs[cancer_type_vcf] = dict(CANCER_PC_DICT)
                     pc_type = CANCER_PC_PREFIXES[pc_type_vcf]
-                    if key.endswith("_Count"):
-                        var_cancer_pcs[cancer_type_vcf][pc_type] = int(val)
+                    var_cancer_pcs[cancer_type_vcf][pc_type] = int(val)
             
             # Construct a variant cancer type row with values from the 
             # VCF in the same order as the model attribute names in the 

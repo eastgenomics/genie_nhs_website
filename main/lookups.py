@@ -106,6 +106,7 @@ def get_variants(search_key: str, search_value: str) -> list:
             # Add parentheses to HGVSp descriptions.
             if 'p.' in hgvs and 'p.(' not in hgvs:
                 hgvs = f"p.({hgvs.split('p.')[1]})"
+            hgvs = hgvs.replace('%3D', '=')
             new_hgvs.append(hgvs)
         return ', '.join(new_hgvs)
     
@@ -137,15 +138,14 @@ def get_variants(search_key: str, search_value: str) -> list:
         is_snv = len(db_variant.ref) == len(db_variant.alt) == 1
         # Construct variant dict which keys matches variant table 
         # "data-field" properties in "variants.html" template.
-        wst_consequence = get_worst_csq_display_term(db_variant.consequence)
         variant = {
             'variant_id': db_variant.id,
             'chrom': db_variant.chrom,
             'pos': db_variant.pos,
             'allele_type': 'SNV' if is_snv else 'INDEL',
-            'consequence': wst_consequence,
+            'consequence': get_worst_csq_display_term(db_variant.consequence),
             'consequence_category': get_consequence_category(
-                wst_consequence, db_variant.hgvs_p
+                db_variant.consequence, db_variant.hgvs_p
             ),
             'hgvs_c': _format_hgvs(db_variant.hgvs_c),
             'hgvs_p': _format_hgvs(db_variant.hgvs_p),
