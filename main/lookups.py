@@ -105,7 +105,7 @@ def get_variants(search_key: str, search_value: str) -> list:
             # Add parentheses to HGVSp descriptions.
             if 'p.' in hgvs and 'p.(' not in hgvs:
                 hgvs = f"p.({hgvs.split('p.')[1]})"
-                hgvs = hgvs.replace('%3D', '=')
+            hgvs = hgvs.replace('%3D', '=')
             new_hgvs.append(hgvs)
         return ', '.join(new_hgvs)
     
