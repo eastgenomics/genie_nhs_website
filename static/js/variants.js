@@ -246,6 +246,52 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
+    window.filterCustomRangeFieldSearch = function (text, value, field, data) {
+        if (!text) return true;
+
+        // Extract first number from display value (e.g. "304-305"→ 304, "?-2"→2)
+        function extractFirstNumber(val) {
+            console.log(typeof val, JSON.stringify(val));
+            if (!val || val === '?' || val === '-') return null;
+            const match = String(val).match(/\d+/);
+            return match ? Number(match[0]) : null;
+        }
+
+        const numValue = extractFirstNumber(value);
+
+        // Null/unknown values never match numeric filters
+        if (numValue === null) return false;
+
+        if (String(text).startsWith('>')) {
+            return numValue >= Number(text.replace('>', '').trim());
+        } else if (String(text).startsWith('<')) {
+            return numValue <= Number(text.replace('<', '').trim());
+        } else if (String(text).indexOf('-') !== -1) {
+            const [start, end] = text.split('-').map(Number);
+            return numValue >= start && numValue <= end;
+        } else {
+            // Fall back to plain text match (e.g. searching "?" or "304-305" exactly)
+            return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
+        }
+    }
+
+    window.proteinPosSorter = function(a, b) {
+        function toNum(val) {
+            if (val === null || val === undefined || val === '?' || val === '-') return null;
+            const match = String(val).match(/\d+/);
+            return match ? Number(match[0]) : null;
+        }
+        const aNum = toNum(a);
+        const bNum = toNum(b);
+        
+        // Always sort nulls to bottom regardless of direction
+        if (aNum === null && bNum === null) return 0;
+        if (aNum === null) return -1;
+        if (bNum === null) return 1;
+        
+        return aNum - bNum;
+    }
+
     // Filter table based on selected variant categories and allele types.
     function filterTable() {
         // Consequence and Allele type checkbox values are the same as 
