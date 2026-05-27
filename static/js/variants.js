@@ -245,52 +245,78 @@ document.addEventListener('DOMContentLoaded', function () {
         }  
     }
 
+    function parseProteinPosition(val) {
+        if (val == null) {
+            return { start: 0, end: 0 };
+        }
 
-    window.filterCustomRangeFieldSearch = function (text, value, field, data) {
+        const str = String(val).trim();
+
+        if (!str || str === '?' || str === '-') {
+            return { start: 0, end: 0 };
+        }
+
+        if (str.includes('-')) {
+            const [rawStart, rawEnd] = str.split('-');
+
+            const start =
+                rawStart === '?' || rawStart === ''
+                    ? 0
+                    : Number(rawStart);
+
+            let end =
+                rawEnd === '?' || rawEnd === ''
+                    ? start   // 🔥 key change: collapse to point
+                    : Number(rawEnd);
+
+            // if invalid, fallback to point
+            if (Number.isNaN(start)) return { start: 0, end: 0 };
+            if (Number.isNaN(end)) end = start;
+
+            return { start, end };
+        }
+
+        const num = Number(str);
+
+        return {
+            start: Number.isNaN(num) ? 0 : num,
+            end: Number.isNaN(num) ? 0 : num,
+        };
+    }
+
+    window.filterCustomRangeFieldSearch = function (text, value) {
         if (!text) return true;
 
-        // Extract first number from display value (e.g. "304-305"→ 304, "?-2"→2)
-        function extractFirstNumber(val) {
-            console.log(typeof val, JSON.stringify(val));
-            if (!val || val === '?' || val === '-') return null;
-            const match = String(val).match(/\d+/);
-            return match ? Number(match[0]) : null;
+        const pos = parseProteinPosition(value);
+        const query = String(text).trim();
+
+        // RANGE query: overlap
+        if (query.includes('-')) {
+            const [start, end] = query.split('-').map(Number);
+
+            return pos.start <= end && pos.end >= start;
         }
 
-        const numValue = extractFirstNumber(value);
+        const exact = Number(query);
 
-        // Null/unknown values never match numeric filters
-        if (numValue === null) return false;
-
-        if (String(text).startsWith('>')) {
-            return numValue >= Number(text.replace('>', '').trim());
-        } else if (String(text).startsWith('<')) {
-            return numValue <= Number(text.replace('<', '').trim());
-        } else if (String(text).indexOf('-') !== -1) {
-            const [start, end] = text.split('-').map(Number);
-            return numValue >= start && numValue <= end;
-        } else {
-            // Fall back to plain text match (e.g. searching "?" or "304-305" exactly)
-            return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
+        if (!Number.isNaN(exact)) {
+            // strict containment still works, but now ranges are all tight
+            return pos.start <= exact && pos.end >= exact;
         }
-    }
+
+        return String(value).toLowerCase().includes(query.toLowerCase());
+    };
 
     window.proteinPosSorter = function(a, b) {
-        function toNum(val) {
-            if (val === null || val === undefined || val === '?' || val === '-') return null;
-            const match = String(val).match(/\d+/);
-            return match ? Number(match[0]) : null;
+        const aPos = parseProteinPosition(a);
+        const bPos = parseProteinPosition(b);
+
+        if (aPos.start !== bPos.start) {
+            return aPos.start - bPos.start;
         }
-        const aNum = toNum(a);
-        const bNum = toNum(b);
-        
-        // Always sort nulls to bottom regardless of direction
-        if (aNum === null && bNum === null) return 0;
-        if (aNum === null) return -1;
-        if (bNum === null) return 1;
-        
-        return aNum - bNum;
-    }
+
+        return aPos.end - bPos.end;
+    };
 
     // Filter table based on selected variant categories and allele types.
     function filterTable() {
