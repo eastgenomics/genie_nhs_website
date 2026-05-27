@@ -1,5 +1,3 @@
-import re
-
 from main.models import CancerType, Variant, VariantCancerTypePatientCount
 from main.utils import get_worst_csq_term, get_consequence_category
 from functools import lru_cache
