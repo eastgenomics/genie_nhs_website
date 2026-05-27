@@ -60,7 +60,7 @@ VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT = {
 VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT = dict(enumerate(VEP_CSQ_TERMS))
 
 
-def get_worst_csq_display_term(csqs: str) -> str:
+def get_worst_csq_term(csqs: str, raw=0) -> str:
     """
     Return the most severe consequence (human-readable display term) from an
     Ensembl VEP consequences string.
@@ -70,23 +70,32 @@ def get_worst_csq_display_term(csqs: str) -> str:
     csqs : str
         VEP consequences delimited by '&' (standard) or ',' (tolerated), e.g.
         "non_coding_transcript_exon_variant&non_coding_transcript_variant"
+    
+    raw : int, optional
+        Whether the function should return the display value (the value) or the
+        raw value (the key). Defaults to 0, which displays the display value.
 
     Returns
     -------
     str
-        Display term for the most severe consequence, e.g.
-        "Non coding transcript exon variant".
+        Display or raw term for the most severe consequence, e.g.
+        "Non coding transcript exon variant" or "non_coding_transcript_variant".
     """
+
     csqs_list = csqs.replace(',', '&').split('&')
     if not csqs_list:
         return ''
     # Fail-fast sentinel on unknown terms to align with importer validation.
     if any(csq not in VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT for csq in csqs_list):
         return ''
+    
     worst_csq_index = min(VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT[csq] 
                           for csq in csqs_list)
     worst_csq = VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT[worst_csq_index]
-    return VEP_CSQ_TERMS[worst_csq]
+    if raw == 1:
+        return worst_csq
+    elif raw == 0:
+        return VEP_CSQ_TERMS[worst_csq]
 
 LOF_VEP_CONSEQUENCES = {
     'frameshift_variant',
