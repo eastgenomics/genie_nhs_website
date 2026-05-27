@@ -14,7 +14,7 @@ from django.conf import settings
 from django.db.models import NOT_PROVIDED
 
 from main.models import CancerType, Variant
-from main.utils import get_worst_csq_display_term
+from main.utils import get_worst_csq_term
 
 # VCF cancer patient count INFO field prefixes and their respective 
 # VariantCancerTypePatientCount model field names
@@ -219,7 +219,7 @@ def import_vcf_variants(db) -> None:
         -------
         None
         """
-        most_severe_csq = get_worst_csq_display_term(csqs)
+        most_severe_csq = get_worst_csq_term(csqs)
         if not most_severe_csq:
             sys.exit('Failed to identify the most severe consequence from '
                 f'"{csqs}". Ensure consequences are delimited by "&" (or ",") '
