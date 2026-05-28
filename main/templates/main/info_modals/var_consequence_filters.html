@@ -1,0 +1,58 @@
+<div class="modal fade" id="infoVariantConsequenceGroups" tabindex="-1" aria-labelledby="infoVariantConsequenceGroupsLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="infoVariantConsequenceGroupsLabel">Variant VEP Consequence Groups</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-unstyled">
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-red variant-consequence-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>PTV LoF</b> (with <b>Ter</b> (and not <b>ext</b>) in HGVSp)
+                        <ul class="mt-1 ms-4">
+                            <li>Frameshift</li>
+                            <li>Stop gained</li>
+                        </ul>
+                    </li>
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-red variant-consequence-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>non-PTV LoF</b> (splice donor/acceptor, frameshift, or stop gained without <b>Ter</b> or with <b>ext</b> in HGVSp)
+                        <ul class="mt-1 ms-4">
+                            <li>Frameshift</li>
+                            <li>Stop gained</li>
+                            <li>Splice acceptor</li> 
+                            <li>Splice donor</li>
+                        </ul>
+                    </li>
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-yellow variant-consequence-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>Missense / Inframe indel</b>
+                        <ul class="mt-1 ms-4">
+                            <li>Missense</li>
+                            <li>Inframe insertion</li>
+                            <li>Inframe deletion</li>
+                            <li>Protein altering variant</li>
+                            <li>Stop codon lost</li>
+                            <li>Start codon lost</li>
+                        </ul>
+                    </li>
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-green variant-consequence-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>Silent</b>
+                        <ul class="mt-1 ms-4">
+                            <li>Synonymous variant</li>
+                        </ul>
+                    </li>
+                    <li class="mt-2">
+                        <input class="form-check-input form-check-input-grey variant-consequence-filter static-control" type="checkbox" tabindex="-1" checked>
+                        <b>Other</b>
+                        <ul class="mt-1 ms-4">
+                            <li>All others</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
