@@ -245,91 +245,99 @@ document.addEventListener('DOMContentLoaded', function () {
         }  
     }
 
-    // Parse the protein position to get start and end
+    // Parses a protein position string into a { start, end } object.
+    // Accepts a single position ("45"), a range ("45-120"), or partial ranges
+    // ("45-?") where unknown end is treated as Infinity ("45 and beyond").
+    // Returns null for fully unknown/missing values.
     function parseProteinPosition(val) {
-        // Null/undefined -> zero fallback
-        if (val == null) {
-            return { start: 0, end: 0 };
-        }
+        if (val == null) return null;
 
         const str = String(val).trim();
 
-        // Empty, unknown ("?"), or bare dash → zero fallback
-        if (!str || str === '?' || str === '-') {
-            return { start: 0, end: 0 };
-        }
+        // Empty, unknown ("?"), or bare dash → missing value
+        if (!str || str === '?' || str === '-' || str === 'null') return null;
 
         if (str.includes('-')) {
-            // Range format: split "start-end" into two parts
             const [rawStart, rawEnd] = str.split('-');
 
-            // Treat "?" or empty as 0 for start
-            const start =
-                rawStart === '?' || rawStart === ''
-                    ? 0
-                    : Number(rawStart);
+            const start = rawStart === '?' || rawStart === '' ? null : Number(rawStart);
+            const end   = rawEnd   === '?' || rawEnd   === '' ? Infinity : Number(rawEnd);
 
-            // Treat "?" or empty as a point range (end == start)
-            let end =
-                rawEnd === '?' || rawEnd === ''
-                    ? start   // collapse to point
-                    : Number(rawEnd);
-
-            // If start is unparseable, give up
-            if (Number.isNaN(start)) return { start: 0, end: 0 };
-            // If end is unparseable, collapse to a point range
-            if (Number.isNaN(end)) end = start;
+            // Unknown or unparseable start → we can't place this position
+            if (start === null || Number.isNaN(start)) return null;
+            // Unparseable end (but not "?") → invalid range
+            if (Number.isNaN(end)) return null;
 
             return { start, end };
         }
 
-        // Single position: point range where start === end
         const num = Number(str);
-
-        return {
-            start: Number.isNaN(num) ? 0 : num,
-            end: Number.isNaN(num) ? 0 : num,
-        };
+        if (Number.isNaN(num)) return null;
+        return { start: num, end: num };
     }
 
-    // Filters rows by protein position, supporting three query formats:
-    //   "45-120"  → range overlap  (does the position overlap the queried range?)
-    //   "45"      → point-in-range (does the position span include this number?)
-    //   "abc"     → plain text fallback (string contains query?)
+    // Filters rows by protein position, supporting four query formats:
+    //   ">50"     → position extends past 50
+    //   "<50"     → position starts before 50
+    //   "45-120"  → range overlap
+    //   "45"      → point-in-range
+    //   "abc"     → plain text fallback
+    // Unknown positions (null) never match numeric queries.
     window.filterCustomRangeFieldSearch = function (text, value) {
         if (!text) return true; // No active filter → always show
 
         const pos = parseProteinPosition(value);
         const query = String(text).trim();
 
+        if (query.startsWith('>')) {
+            const n = Number(query.slice(1).trim());
+            return !Number.isNaN(n) && !!pos && pos.end > n;
+        }
+        if (query.startsWith('<')) {
+            const n = Number(query.slice(1).trim());
+            return !Number.isNaN(n) && !!pos && pos.start < n;
+        }
+
         // Range query: check if [pos.start, pos.end] overlaps [start, end]
         if (query.includes('-')) {
-            const [start, end] = query.split('-').map(Number);
-
-            return pos.start <= end && pos.end >= start;
+            const queryPos = parseProteinPosition(query);
+            return !!pos && !!queryPos && pos.start <= queryPos.end && pos.end >= queryPos.start;
         }
-        // Exact position query: check if the number falls within the position's span
+
+        // Exact position: check if the number falls within the position's span
         const exact = Number(query);
-
         if (!Number.isNaN(exact)) {
-            return pos.start <= exact && pos.end >= exact;
+            return !!pos && pos.start <= exact && pos.end >= exact;
         }
+
         // Non-numeric query: plain string match against the raw value
-        return String(value).toLowerCase().includes(query.toLowerCase());
+        return String(value ?? '').toLowerCase().includes(query.toLowerCase());
     };
 
-    // Sorts rows by protein position — ascending by start, then by end as a tiebreaker
-    // e.g. 10-20 < 10-30 < 15-40 < 20
+    // Sorts by protein position ascending — earlier start first, then earlier end
+    // Unknown positions (null) sort to the bottom.
+    // Infinity end ("45-?") sorts after all known ranges with the same start.
     window.proteinPosSorter = function(a, b) {
+        const order = $table.bootstrapTable('getOptions').sortOrder;
+
+        const aNull = a == null || String(a).trim() === '' || String(a).trim() === 'null';
+        const bNull = b == null || String(b).trim() === '' || String(b).trim() === 'null';
+        if (aNull && bNull) return 0;
+        if (aNull) return order === 'desc' ? -1 : 1;
+        if (bNull) return order === 'desc' ? 1 : -1;
+
         const aPos = parseProteinPosition(a);
         const bPos = parseProteinPosition(b);
 
-        // Primary sort: earlier start position comes first
-        if (aPos.start !== bPos.start) {
-            return aPos.start - bPos.start;
-        }
+        if (!aPos && !bPos) return 0;
+        if (!aPos) return order === 'desc' ? -1 : 1;
+        if (!bPos) return order === 'desc' ? 1 : -1;
 
-        // Tiebreaker: shorter/earlier-ending range comes first
+        if (aPos.start !== bPos.start) return aPos.start - bPos.start;
+
+        if (aPos.end === bPos.end) return 0;
+        if (aPos.end === Infinity) return 1;
+        if (bPos.end === Infinity) return -1;
         return aPos.end - bPos.end;
     };
 
