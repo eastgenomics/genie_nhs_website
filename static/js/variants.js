@@ -245,37 +245,45 @@ document.addEventListener('DOMContentLoaded', function () {
         }  
     }
 
+    // Parse the protein position to get start and end
     function parseProteinPosition(val) {
+        // Null/undefined -> zero fallback
         if (val == null) {
             return { start: 0, end: 0 };
         }
 
         const str = String(val).trim();
 
+        // Empty, unknown ("?"), or bare dash → zero fallback
         if (!str || str === '?' || str === '-') {
             return { start: 0, end: 0 };
         }
 
         if (str.includes('-')) {
+            // Range format: split "start-end" into two parts
             const [rawStart, rawEnd] = str.split('-');
 
+            // Treat "?" or empty as 0 for start
             const start =
                 rawStart === '?' || rawStart === ''
                     ? 0
                     : Number(rawStart);
 
+            // Treat "?" or empty as a point range (end == start)
             let end =
                 rawEnd === '?' || rawEnd === ''
-                    ? start   // 🔥 key change: collapse to point
+                    ? start   // collapse to point
                     : Number(rawEnd);
 
-            // if invalid, fallback to point
+            // If start is unparseable, give up
             if (Number.isNaN(start)) return { start: 0, end: 0 };
+            // If end is unparseable, collapse to a point range
             if (Number.isNaN(end)) end = start;
 
             return { start, end };
         }
 
+        // Single position: point range where start === end
         const num = Number(str);
 
         return {
@@ -284,37 +292,44 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
+    // Filters rows by protein position, supporting three query formats:
+    //   "45-120"  → range overlap  (does the position overlap the queried range?)
+    //   "45"      → point-in-range (does the position span include this number?)
+    //   "abc"     → plain text fallback (string contains query?)
     window.filterCustomRangeFieldSearch = function (text, value) {
-        if (!text) return true;
+        if (!text) return true; // No active filter → always show
 
         const pos = parseProteinPosition(value);
         const query = String(text).trim();
 
-        // RANGE query: overlap
+        // Range query: check if [pos.start, pos.end] overlaps [start, end]
         if (query.includes('-')) {
             const [start, end] = query.split('-').map(Number);
 
             return pos.start <= end && pos.end >= start;
         }
-
+        // Exact position query: check if the number falls within the position's span
         const exact = Number(query);
 
         if (!Number.isNaN(exact)) {
-            // strict containment still works, but now ranges are all tight
             return pos.start <= exact && pos.end >= exact;
         }
-
+        // Non-numeric query: plain string match against the raw value
         return String(value).toLowerCase().includes(query.toLowerCase());
     };
 
+    // Sorts rows by protein position — ascending by start, then by end as a tiebreaker
+    // e.g. 10-20 < 10-30 < 15-40 < 20
     window.proteinPosSorter = function(a, b) {
         const aPos = parseProteinPosition(a);
         const bPos = parseProteinPosition(b);
 
+        // Primary sort: earlier start position comes first
         if (aPos.start !== bPos.start) {
             return aPos.start - bPos.start;
         }
 
+        // Tiebreaker: shorter/earlier-ending range comes first
         return aPos.end - bPos.end;
     };
 
