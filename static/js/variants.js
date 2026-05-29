@@ -296,7 +296,11 @@ document.addEventListener('DOMContentLoaded', function () {
         // Range query: check if [pos.start, pos.end] overlaps [start, end]
         if (query.includes('-')) {
             const queryPos = parsePosition(query);
-            return !!pos && !!queryPos && pos.start <= queryPos.end && pos.end >= queryPos.start;
+            if (queryPos) {
+                return !!pos && pos.start <= queryPos.end && pos.end >= queryPos.start;
+            }
+            // Non-numeric dashed query: use text fallback
+            return String(value ?? '').toLowerCase().includes(query.toLowerCase());
         }
 
         // Exact position: check if the number falls within the position's span
