@@ -132,14 +132,14 @@
                                             data-bs-toggle="tooltip"
                                             data-bs-placement="top"
                                             data-bs-custom-class="tooltip-click"
-                                            title="Supports >N, <N, and range (START-END) number filters (inclusive, i.e. >N = ≥N).">
+                                            title="Supports >N, <N, and range (START-END) number filters. >N and <N are exclusive (i.e. >N does not include N).">
                                         <i class="fa-solid fa-xl fa-circle-question"></i>
                                     </button>
                                 </th>
                                 <th data-field="consequence" data-filter-control="select" data-width="200" data-sortable="true" data-halign="center" data-valign="middle">Consequence</th>
                                 <th data-field="hgvs_c" data-filter-custom-search="filterCustomTextSearch" data-filter-control="input" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSc</th>
                                 <th data-field="hgvs_p" data-filter-custom-search="filterCustomTextSearch" data-filter-control="input" class="col-max-width-500" data-width="500" data-sortable="true" data-halign="center" data-valign="middle">HGVSp</th>
-                                <th data-field="protein_pos" data-filter-control="input" data-filter-custom-search="filterCustomRangeFieldSearch" data-sortable="true" data-sorter="proteinPosSorter" data-order="asc" data-halign="center" data-valign="middle">
+                                <th data-field="protein_pos" data-filter-control="input" data-filter-custom-search="filterCustomRangeFieldSearch" data-sortable="true" data-sort-name="pos" data-order="asc" data-halign="center" data-valign="middle">
                                     Protein position
                                     <button type="button"
                                             class="icon-button alt-info tooltip-click"
@@ -147,7 +147,7 @@
                                             data-bs-toggle="tooltip"
                                             data-bs-placement="top"
                                             data-bs-custom-class="tooltip-click"
-                                            title="Supports >N, <N, and range (START-END) number filters. Values are treated as numeric intervals (e.g. 24-34, 2840-?). Single values are treated as exact positions (N-N). Filtering uses interval overlap logic. >N and <N are exclusive. Empty values sort to the bottom.">
+                                            title="Supports >N, <N, and range (START-END) number filters. Values are treated as numeric intervals (e.g. 24-34). Single values are treated as exact positions. Filtering uses interval overlap logic. Uncertain bounds (e.g. 2840-?) are collapsed to the known bound. >N and <N are exclusive (i.e. >N does not include N).">
                                         <i class="fa-solid fa-xl fa-circle-question"></i>
                                     </button>
                                 </th>
