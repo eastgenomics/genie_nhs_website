@@ -2,6 +2,31 @@ data "aws_key_pair" "genie" {
   key_name = var.key_pair_name
 }
 
+# --- Latest Canonical Ubuntu 24.04 LTS AMI (amd64) ---
+# Looked up at plan time so the AMI ID does not need hardcoding per account.
+# aws_instance.genie has lifecycle.ignore_changes = [ami] so a newer AMI
+# appearing here will not force replacement of a running instance.
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+}
+
 # --- Security group ---
 
 resource "aws_security_group" "genie" {
@@ -58,7 +83,7 @@ resource "aws_vpc_security_group_egress_rule" "all_outbound" {
 # --- EC2 instance ---
 
 resource "aws_instance" "genie" {
-  ami                    = var.ami_id
+  ami                    = data.aws_ami.ubuntu.id
   instance_type          = local.ec2_type
   key_name               = data.aws_key_pair.genie.key_name
   vpc_security_group_ids = [aws_security_group.genie.id]
@@ -77,10 +102,13 @@ resource "aws_instance" "genie" {
   }
 
   user_data = templatefile("${path.module}/user_data.sh", {
-    environment       = local.env
-    ssm_env_parameter = "${var.ssm_env_parameter}/${local.env}/env"
-    github_repo       = var.github_repo
-    aws_region        = var.aws_region
+    environment           = local.env
+    ssm_env_parameter     = "${var.ssm_env_parameter}/${local.env}/env"
+    github_repo           = var.github_repo
+    aws_region            = var.aws_region
+    restrict_to_uk        = var.restrict_to_uk
+    allowed_countries     = join(" ", var.allowed_countries)
+    maxmind_ssm_parameter = var.maxmind_ssm_parameter
   })
 
   tags = { Name = local.name }

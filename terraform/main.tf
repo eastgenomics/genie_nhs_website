@@ -30,10 +30,10 @@ provider "aws" {
 }
 
 locals {
-  env       = terraform.workspace
-  is_prod   = terraform.workspace == "prod"
-  name      = "nhs-genie-${local.env}"
-  fqdn      = local.is_prod ? var.domain : "uat.${var.domain}"
-  ec2_type  = local.is_prod ? "t3.large" : "t3.medium"
-  ebs_gb    = local.is_prod ? 30 : 20
+  env      = terraform.workspace
+  is_prod  = terraform.workspace == "prod"
+  name     = "nhs-genie-${local.env}"
+  fqdn     = local.is_prod ? var.domain : "uat.${var.domain}"
+  ec2_type = local.is_prod ? "t3.large" : "t3.medium"
+  ebs_gb   = local.is_prod ? 30 : 20
 }

@@ -16,29 +16,35 @@
 
 ## Search
 
-- [ ] Gene search: enter "TP53" -> redirects to /variants/, table loads with data
-- [ ] Region search: enter "7:140453136-140924929" -> table loads with results
+- [ ] Gene search: enter "SAMHD1" -> redirects to /variants/, table loads with data
+- [ ] Region search: enter "20:36897839-36935111" -> table loads with results
 - [ ] Invalid gene (e.g. "FAKEGENE999") -> empty table, no crash, "no variants were found message"
 
 ## Variant Table
 
-- [ ] Table shows columns: Chr, Pos, Allele type, Consequence, MAF classification, HGVSc, HGVSp, Gene, Transcript, All, Solid, HaemOnc
+- [ ] Table shows columns: Chrom, Pos, Consequence, HGVSc, HGVSp, Protein pos, Transcript, Gene, All, Solid, HaemOnc
 - [ ] "+" button expands row detail subtable (cancer type patient counts load via AJAX)
-- [ ] Classification filter (e.g. select only "PTV LoF") -> table updates correctly
-- [ ] Consequence filter (PTV etc toggles) -> table updates correctly
+- [ ] Consequence filter (e.g. select only "PTV LoF") -> table updates correctly
+- [ ] Silent variants are filtered out by default; toggling them on shows synonymous variants
+- [ ] Protein position sorting / range filtering works
 - [ ] Column search boxes filter results correctly
 
 ## Visual / UI
 
 - [ ] No broken CSS — page renders with correct Bootstrap styling
 - [ ] No JS console errors (check browser developer tools)
-- [ ] "(?) " info modal opens when clicked next to classification filter
-- [ ] Footer / version string shows correct GENIE version
+- [ ] "(?) " info modal opens when clicked next to the consequence filter
+- [ ] Footer / version string shows correct GENIE version (v19)
+
+## Geo-restriction (UK only)
+
+- [ ] Site loads normally from a UK connection
+- [ ] Site returns HTTP 403 from a non-UK connection (e.g. via a non-UK VPN / proxy)
 
 ## Automated acceptance tests (optional; for admins)
 
 - [ ] All automated tests passed (`make acceptance-test`)
-- [ ] DB row count verified (`make verify-db`)
+- [ ] DB row count verified (`make verify-db`) — expected ~1,267,112 variants for v19
 
 **Result:** PASS / FAIL
 

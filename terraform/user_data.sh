@@ -29,14 +29,72 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
 systemctl enable --now docker
 usermod -aG docker ubuntu
 
+# --- Install AWS CLI (needed early for SSM lookups below) ---
+apt-get install -y unzip
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install
+rm -rf /tmp/aws /tmp/awscliv2.zip
+
 # --- Install and configure Nginx as reverse proxy ---
 apt-get install -y nginx
+
+%{ if restrict_to_uk ~}
+# --- UK geo-restriction via Nginx GeoIP2 ---
+# Install the dynamic GeoIP2 module and download the GeoLite2-Country database
+# using the MaxMind licence key stored in SSM (maxmind_ssm_parameter).
+apt-get install -y libnginx-mod-http-geoip2
+
+mkdir -p /etc/nginx/geoip
+
+# Write a refresh script that pulls the licence key from SSM and downloads the DB
+cat > /usr/local/bin/update-geolite2.sh <<'UPDATE'
+#!/bin/bash
+set -euo pipefail
+KEY=$(aws ssm get-parameter --name "__MAXMIND_PARAM__" --with-decryption --query "Parameter.Value" --output text --region "__AWS_REGION__")
+curl -fsSL "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=$${KEY}&suffix=tar.gz" -o /tmp/geolite.tar.gz
+tar -xzf /tmp/geolite.tar.gz -C /tmp
+find /tmp -name 'GeoLite2-Country.mmdb' -exec cp {} /etc/nginx/geoip/GeoLite2-Country.mmdb \;
+rm -rf /tmp/geolite.tar.gz /tmp/GeoLite2-Country_*
+UPDATE
+sed -i "s|__MAXMIND_PARAM__|${maxmind_ssm_parameter}|g; s|__AWS_REGION__|${aws_region}|g" /usr/local/bin/update-geolite2.sh
+chmod +x /usr/local/bin/update-geolite2.sh
+
+# Initial download
+/usr/local/bin/update-geolite2.sh
+
+# Weekly refresh (Mondays 04:00)
+cat > /etc/cron.d/update-geolite2 <<'CRON'
+0 4 * * 1 root /usr/local/bin/update-geolite2.sh >/var/log/geolite2-update.log 2>&1 && systemctl reload nginx
+CRON
+
+# GeoIP2 lookup + allowed-country map (http context, included by nginx.conf)
+cat > /etc/nginx/conf.d/geoip2.conf <<'GEOIP2'
+geoip2 /etc/nginx/geoip/GeoLite2-Country.mmdb {
+    $geoip2_country_iso_code source=$remote_addr country iso_code;
+}
+
+map $geoip2_country_iso_code $allowed_country {
+    default no;
+%{ for code in split(" ", allowed_countries) ~}
+    ${code} yes;
+%{ endfor ~}
+}
+GEOIP2
+%{ endif ~}
 
 cat > /etc/nginx/sites-available/genie <<'NGINX'
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
+%{ if restrict_to_uk ~}
+
+    # Reject requests from outside the allowed countries (UK + Crown Dependencies)
+    if ($allowed_country = no) {
+        return 403;
+    }
+%{ endif ~}
 
     location / {
         proxy_pass http://127.0.0.1:8000;
@@ -59,13 +117,6 @@ python3 -m venv /opt/certbot/
 /opt/certbot/bin/pip install --upgrade pip
 /opt/certbot/bin/pip install certbot certbot-nginx
 ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
-
-# --- Install AWS CLI ---
-apt-get install -y unzip
-curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
-unzip -q /tmp/awscliv2.zip -d /tmp
-/tmp/aws/install
-rm -rf /tmp/aws /tmp/awscliv2.zip
 
 # --- Install and configure CloudWatch agent ---
 wget -q https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb \

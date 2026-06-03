@@ -2,7 +2,7 @@
 #
 # Usage:
 #   make uat-up                                          Spin up UAT instance
-#   make update-data ENV=uat VCF=s3://... CSV=s3://... VER=v17   Load data
+#   make update-data ENV=uat VCF=s3://... CSV=s3://... VER=v19   Load data
 #   make verify-db ENV=uat                               Check DB row counts
 #   make acceptance-test                                 Run automated tests
 #   make acceptance-checklist                            Print manual checklist
@@ -75,7 +75,7 @@ deploy: ## Deploy latest code to ENV instance
 update-data: ## Update GENIE data on ENV instance (requires VCF, CSV, VER)
 	@if [ -z "$(VCF)" ]; then echo "ERROR: VCF= required (S3 URI)"; exit 1; fi
 	@if [ -z "$(CSV)" ]; then echo "ERROR: CSV= required (S3 URI)"; exit 1; fi
-	@if [ -z "$(VER)" ]; then echo "ERROR: VER= required (e.g. v17)"; exit 1; fi
+	@if [ -z "$(VER)" ]; then echo "ERROR: VER= required (e.g. v19)"; exit 1; fi
 	$(eval IP := $(call tf_output,$(ENV),public_ip))
 	@if [ -z "$(IP)" ]; then echo "ERROR: could not resolve IP for $(ENV)"; exit 1; fi
 	bash scripts/update_data.sh --host $(IP) --vcf $(VCF) --csv $(CSV) --version $(VER)

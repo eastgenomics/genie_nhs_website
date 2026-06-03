@@ -4,11 +4,6 @@ variable "aws_region" {
   default     = "eu-west-2"
 }
 
-variable "ami_id" {
-  description = "Ubuntu 24.04 AMI ID"
-  type        = string
-}
-
 variable "key_pair_name" {
   description = "Name of an existing EC2 key pair"
   type        = string
@@ -49,4 +44,24 @@ variable "ssm_env_parameter" {
   description = "SSM parameter path prefix for .env files (appended with /{env}/env)"
   type        = string
   default     = "/genie"
+}
+
+# --- UK geo-restriction (Nginx GeoIP2) ---
+
+variable "restrict_to_uk" {
+  description = "Restrict HTTP/HTTPS access to allowed_countries using Nginx GeoIP2. When true, requests from other countries receive HTTP 403."
+  type        = bool
+  default     = true
+}
+
+variable "allowed_countries" {
+  description = "ISO 3166-1 alpha-2 country codes permitted when restrict_to_uk is true. Defaults to the UK plus the Crown Dependencies (Isle of Man, Jersey, Guernsey)."
+  type        = list(string)
+  default     = ["GB", "IM", "JE", "GG"]
+}
+
+variable "maxmind_ssm_parameter" {
+  description = "SSM SecureString parameter holding the MaxMind GeoLite2 licence key, used to download the GeoLite2-Country database on the instance."
+  type        = string
+  default     = "/genie/maxmind/license_key"
 }

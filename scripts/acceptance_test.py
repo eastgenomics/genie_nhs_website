@@ -4,11 +4,13 @@ NHS GENIE Acceptance Test Suite
 
 Runs known-value and parity tests against UAT (and optionally prod) instances.
 
-Known-value expectations are derived from GENIE v17 acceptance testing:
-https://cuhbioinformatics.atlassian.net/wiki/spaces/SR/pages/4164452353/
+Known-value expectations are derived from GENIE v19 acceptance testing:
+https://cuhbioinformatics.atlassian.net/wiki/spaces/DV/pages/4426629121/
 
-IMPORTANT: Expected values are for Genie_v17_GRCh38_counts_v1.0.0.vcf.gz.
-If the data version changes, these values must be updated.
+IMPORTANT: Expected values are for GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz.
+All coordinates are GRCh38. The worked examples below (SAMHD1 / TP63) are
+taken from the "All patient counts ..." and "Inframe deletion counts ..."
+tests on that page. If the data version changes, these values must be updated.
 
 Usage:
     python scripts/acceptance_test.py --uat-url http://HOST:PORT [--prod-url http://HOST:PORT]
@@ -114,154 +116,159 @@ def fetch_status(base_url: str, path: str) -> int:
 
 # ── Known-value tests ────────────────────────────────────────────────────────
 
+def _find_variant_row(base_url: str, region: str, hgvsp_substr: str):
+    """Return the variant row at a GRCh38 region whose hgvs_p contains a
+    given substring (used to disambiguate multiple alleles at one position)."""
+    data = fetch_json(base_url, "/main/ajax_variants/", {
+        "search_key": "region", "search_value": region,
+    })
+    for row in data.get("rows", []):
+        if hgvsp_substr in (row.get("hgvs_p") or ""):
+            return row
+    return None
+
+
+def _pc_field_by_cancer(pc_rows: list, field: str) -> dict:
+    """Map cancer_type -> value of `field` for non-null PC rows."""
+    out = {}
+    for r in pc_rows:
+        val = r.get(field)
+        if val is not None:
+            out[r["cancer_type"]] = val
+    return out
+
+
+def _check_pc(suite, base_url, label, variant_id, field, expected):
+    """Assert that PC `field` matches expected {cancer_type: value} exactly
+    for the listed cancer types (other cancer types are not constrained)."""
+    try:
+        pc_data = fetch_json(
+            base_url, "/main/ajax_variant_cancer_pcs",
+            {"variant_id": variant_id},
+        )
+    except RuntimeError as e:
+        suite.add(label, False, str(e))
+        return
+    actual = _pc_field_by_cancer(pc_data.get("rows", []), field)
+    mismatches = [
+        f"{ct}: expected={exp}, got={actual.get(ct)}"
+        for ct, exp in expected.items()
+        if actual.get(ct) != exp
+    ]
+    suite.add(label, not mismatches, "; ".join(mismatches))
+
+
 def run_known_value_tests(suite: TestSuite, base_url: str):
-    """Tests against hardcoded expected values from v17 acceptance testing."""
+    """Tests against hardcoded expected values from v19 acceptance testing.
+
+    Worked examples (GRCh38) from the GENIE v19 controlled-file test page:
+      - SAMHD1 20:36935111 G>A   (missense)       SameNuc/SameAA counts
+      - SAMHD1 20:36927220 G>A   (stop_gained)    downstream-truncating counts
+      - SAMHD1 20:36919495 ..del (inframe del)    nested inframe-deletion counts
+    Cohort denominators: All Cancers 208523, Haemonc 18695, Solid 182170.
+    """
     print(f"\n{BOLD}Known-value tests against: {base_url}{RESET}\n")
 
-    # KV-6, KV-7, KV-8: Smoke -- HTTP 200 on key pages
+    # KV-S: Smoke -- HTTP 200 on key pages
     for label, path in [
-        ("KV-6  Homepage returns 200", "/"),
-        ("KV-7  About page returns 200", "/main/about/"),
-        ("KV-8  Variants page returns 200",
-         "/main/variants/?search_key=gene&search_value=BRAF"),
+        ("KV-S1 Homepage returns 200", "/"),
+        ("KV-S2 About page returns 200", "/main/about/"),
+        ("KV-S3 Variants page returns 200",
+         "/main/variants/?search_key=gene&search_value=SAMHD1"),
     ]:
         status = fetch_status(base_url, path)
         suite.add(label, status == 200, f"Got HTTP {status}")
 
-    # KV-1: NF1 gene -> 7928 variants
-    print("  Testing NF1 gene variant count...")
+    # KV-1: SAMHD1 20:36935111 G>A (missense, p.Arg143Cys) exists with the
+    # expected SameNucleotideChange aggregate counts on the table row.
+    print("  Testing SAMHD1 20:36935111 G>A (missense)...")
     try:
-        data = fetch_json(base_url, "/main/ajax_variants/", {
-            "search_key": "gene", "search_value": "NF1"
-        })
-        suite.add(
-            "KV-1  NF1 gene total == 7928",
-            int(data.get("total", 0)) == 7928,
-            f"Got total={data.get('total')}",
-        )
+        row = _find_variant_row(base_url, "20:36935111", "Arg143Cys")
     except RuntimeError as e:
-        suite.add("KV-1  NF1 gene total == 7928", False, str(e))
+        row = None
+        suite.add("KV-1  SAMHD1 20:36935111 row present", False, str(e))
+    if row is not None:
+        suite.add(
+            "KV-1  SAMHD1 20:36935111 row (gene + nucleotide counts)",
+            row.get("gene") == "SAMHD1"
+            and row.get("all_cancers_count") == 2
+            and row.get("haemonc_cancers_count") == 2
+            and row.get("solid_cancers_count") == 0,
+            f"gene={row.get('gene')} all={row.get('all_cancers_count')} "
+            f"haem={row.get('haemonc_cancers_count')} "
+            f"solid={row.get('solid_cancers_count')}",
+        )
+        # KV-2: SameAminoAcidChange per cancer type for the same variant.
+        _check_pc(
+            suite, base_url,
+            "KV-2  SAMHD1 20:36935111 SameAminoAcidChange counts",
+            row.get("variant_id"), "same_amino_acid_change_pc",
+            {
+                "All Cancers": 2,
+                "Haemonc Cancers": 2,
+                "Mature B-Cell Neoplasms": 1,
+                "Mature T and NK Neoplasms": 1,
+            },
+        )
+        # KV-5: cohort denominators (cancer_n) carried on the PC rows.
+        _check_pc(
+            suite, base_url,
+            "KV-5  Cohort denominators (cancer_n)",
+            row.get("variant_id"), "cancer_n",
+            {
+                "All Cancers": 208523,
+                "Haemonc Cancers": 18695,
+                "Solid Cancers": 182170,
+                "Mature B-Cell Neoplasms": 7653,
+            },
+        )
+    elif not any(r.name.startswith("KV-1") for r in suite.results):
+        suite.add("KV-1  SAMHD1 20:36935111 row present", False, "not found")
 
-    # KV-2: Region 7:102227600-102227800 -> 35 variants
-    print("  Testing region 7:102227600-102227800...")
+    # KV-3: SAMHD1 20:36927220 G>A (stop_gained, p.Arg220Ter)
+    # SameOrDownstreamTruncatingVariantsPerAA counts.
+    print("  Testing SAMHD1 20:36927220 G>A (downstream truncating)...")
     try:
-        data = fetch_json(base_url, "/main/ajax_variants/", {
-            "search_key": "region", "search_value": "7:102227600-102227800"
-        })
-        suite.add(
-            "KV-2  Region 7:102227600-102227800 total == 35",
-            int(data.get("total", 0)) == 35,
-            f"Got total={data.get('total')}",
-        )
+        row = _find_variant_row(base_url, "20:36927220", "Arg220Ter")
     except RuntimeError as e:
-        suite.add(
-            "KV-2  Region 7:102227600-102227800 total == 35", False, str(e)
+        row = None
+        suite.add("KV-3  SAMHD1 20:36927220 downstream-truncating", False,
+                  str(e))
+    if row is not None:
+        _check_pc(
+            suite, base_url,
+            "KV-3  SAMHD1 20:36927220 SameOrDownstreamTruncatingPerAA counts",
+            row.get("variant_id"),
+            "same_or_downstream_truncating_variants_per_aa_pc",
+            {
+                "All Cancers": 21,
+                "Haemonc Cancers": 20,
+                "Mature B-Cell Neoplasms": 15,
+                "Mature T and NK Neoplasms": 4,
+                "Histiocytosis": 1,
+                "UNKNOWN": 2,
+            },
         )
 
-    # KV-3: BRAF missense/inframe indel count -> 1349
-    print("  Testing BRAF missense count...")
+    # KV-4: SAMHD1 20:36919495 ACAT>A (inframe deletion, p.Met240del)
+    # NestedInframeDeletionsPerAA counts.
+    print("  Testing SAMHD1 20:36919495 (nested inframe deletion)...")
     try:
-        data = fetch_json(base_url, "/main/ajax_variants/", {
-            "search_key": "gene", "search_value": "BRAF"
-        })
-        missense_count = sum(
-            1 for row in data.get("rows", [])
-            if row.get("classification_category") == "Missense / Inframe indel"
-        )
-        suite.add(
-            "KV-3  BRAF Missense/Inframe indel count == 1349",
-            missense_count == 1349,
-            f"Got count={missense_count}",
-        )
+        row = _find_variant_row(base_url, "20:36919495", "Met240del")
     except RuntimeError as e:
-        suite.add(
-            "KV-3  BRAF Missense/Inframe indel count == 1349", False, str(e)
-        )
-
-    # KV-4 + KV-5: Variant 2-208248400-A-G exists and has correct patient counts
-    print("  Testing variant 2:208248400 A>G patient counts...")
-    try:
-        data = fetch_json(base_url, "/main/ajax_variants/", {
-            "search_key": "region", "search_value": "2:208248400"
-        })
-    except RuntimeError as e:
-        suite.add("KV-4  Variant 2:208248400 exists in results", False, str(e))
-        suite.add(
-            "KV-5  Variant 2:208248400 cancer type patient counts match",
-            False, "Skipped -- KV-4 failed",
-        )
-        return
-
-    target_row = None
-    for row in data.get("rows", []):
-        if (str(row.get("chrom")) == "2"
-                and row.get("pos") == 208248400):
-            target_row = row
-            break
-
-    suite.add(
-        "KV-4  Variant 2:208248400 exists in results",
-        target_row is not None,
-        "Variant not found in results",
-    )
-
-    if target_row:
-        variant_id = target_row.get("variant_id")
-        try:
-            pc_data = fetch_json(
-                base_url, "/main/ajax_variant_cancer_pcs",
-                {"variant_id": variant_id},
-            )
-        except RuntimeError as e:
-            suite.add(
-                "KV-5  Variant 2:208248400 cancer type patient counts match",
-                False, str(e),
-            )
-            return
-
-        pc_rows = pc_data.get("rows", [])
-
-        # Expected SameNucleotideChange patient counts (from Confluence testing)
-        expected_pcs = {
-            "Esophagogastric Cancer": 1,
-            "Colorectal Cancer": 1,
-            "Glioma": 1,
-            "Wilms Tumor": 1,
-            "Cervical Cancer": 2,
-            "Gastrointestinal Stromal Tumor": 1,
-        }
-
-        actual_pcs = {}
-        for pc_row in pc_rows:
-            snc = pc_row.get("same_nucleotide_change_pc")
-            if snc and snc > 0:
-                actual_pcs[pc_row["cancer_type"]] = snc
-
-        mismatches = []
-        for cancer_type, expected_count in expected_pcs.items():
-            actual = actual_pcs.get(cancer_type)
-            if actual != expected_count:
-                mismatches.append(
-                    f"{cancer_type}: expected={expected_count}, got={actual}"
-                )
-
-        unexpected = {
-            ct: count for ct, count in actual_pcs.items()
-            if ct not in expected_pcs
-        }
-        if unexpected:
-            mismatches.append(f"Unexpected non-zero counts: {unexpected}")
-
-        suite.add(
-            "KV-5  Variant 2:208248400 cancer type patient counts match",
-            len(mismatches) == 0,
-            "; ".join(mismatches) if mismatches else "",
-        )
-    else:
-        suite.add(
-            "KV-5  Variant 2:208248400 cancer type patient counts match",
-            False,
-            "Skipped -- variant not found in KV-4",
+        row = None
+        suite.add("KV-4  SAMHD1 20:36919495 nested inframe deletion", False,
+                  str(e))
+    if row is not None:
+        _check_pc(
+            suite, base_url,
+            "KV-4  SAMHD1 20:36919495 NestedInframeDeletionsPerAA counts",
+            row.get("variant_id"), "nested_inframe_deletions_per_aa_pc",
+            {
+                "All Cancers": 1,
+                "Haemonc Cancers": 1,
+                "Mature B-Cell Neoplasms": 1,
+            },
         )
 
 
@@ -278,9 +285,9 @@ def run_parity_tests(suite: TestSuite, uat_url: str, prod_url: str):
             {"search_key": "gene", "search_value": "BRAF"},
         ),
         (
-            "PT-2  Region 7:102227600-102227800",
+            "PT-2  SAMHD1 gene (rows + total)",
             "/main/ajax_variants/",
-            {"search_key": "region", "search_value": "7:102227600-102227800"},
+            {"search_key": "gene", "search_value": "SAMHD1"},
         ),
         (
             "PT-4  IDH1 gene (rows + total)",
@@ -315,29 +322,29 @@ def run_parity_tests(suite: TestSuite, uat_url: str, prod_url: str):
 
         suite.add(label, passed, detail)
 
-    # PT-3: Compare cancer type patient counts for variant 2:208248400
-    print("  Comparing PT-3 variant 2:208248400 cancer type PCs...")
+    # PT-3: Compare cancer type patient counts for SAMHD1 20:36935111 G>A
+    print("  Comparing PT-3 variant 20:36935111 cancer type PCs...")
 
     try:
         uat_region = fetch_json(uat_url, "/main/ajax_variants/", {
-            "search_key": "region", "search_value": "2:208248400"
+            "search_key": "region", "search_value": "20:36935111"
         })
         prod_region = fetch_json(prod_url, "/main/ajax_variants/", {
-            "search_key": "region", "search_value": "2:208248400"
+            "search_key": "region", "search_value": "20:36935111"
         })
     except RuntimeError as e:
-        suite.add("PT-3  Variant 2:208248400 cancer type PCs", False, str(e))
+        suite.add("PT-3  Variant 20:36935111 cancer type PCs", False, str(e))
         return
 
     uat_vid = None
     for row in uat_region.get("rows", []):
-        if str(row.get("chrom")) == "2" and row.get("pos") == 208248400:
+        if "Arg143Cys" in (row.get("hgvs_p") or ""):
             uat_vid = row.get("variant_id")
             break
 
     prod_vid = None
     for row in prod_region.get("rows", []):
-        if str(row.get("chrom")) == "2" and row.get("pos") == 208248400:
+        if "Arg143Cys" in (row.get("hgvs_p") or ""):
             prod_vid = row.get("variant_id")
             break
 
@@ -351,19 +358,19 @@ def run_parity_tests(suite: TestSuite, uat_url: str, prod_url: str):
             )
         except RuntimeError as e:
             suite.add(
-                "PT-3  Variant 2:208248400 cancer type PCs", False, str(e)
+                "PT-3  Variant 20:36935111 cancer type PCs", False, str(e)
             )
             return
 
         pcs_match = uat_pcs.get("rows") == prod_pcs.get("rows")
         suite.add(
-            "PT-3  Variant 2:208248400 cancer type PCs",
+            "PT-3  Variant 20:36935111 cancer type PCs",
             pcs_match,
             "Patient count rows differ" if not pcs_match else "",
         )
     else:
         suite.add(
-            "PT-3  Variant 2:208248400 cancer type PCs",
+            "PT-3  Variant 20:36935111 cancer type PCs",
             False,
             f"Variant not found (UAT vid={uat_vid}, prod vid={prod_vid})",
         )
