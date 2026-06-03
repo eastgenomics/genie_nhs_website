@@ -235,11 +235,11 @@ This creates:
 - Security group (SSH restricted to `ssh_cidr_blocks`, HTTP/HTTPS open)
 - Elastic IP (prod only)
 - IAM role with S3, SSM, and CloudWatch permissions
-- Route53 A record (`beta.genomics-resources.uk`)
+- Route53 A record (`genie.genomics-resources.uk` for prod; `uat.genie.genomics-resources.uk` for uat)
 - CloudWatch alarms for CPU >80% and disk >80% (prod only)
 - SNS topic with email subscription for alarm notifications
 
-The EC2 user data script automatically installs Docker, Nginx, CloudWatch agent, clones the repo, pulls `.env` from SSM, and starts the application.
+The EC2 user data script automatically installs Docker, Nginx (with the GeoIP2 UK geo-restriction), CloudWatch agent, clones the repo, pulls `.env` from SSM, runs migrations, and starts the application. **It does not load the GENIE data** — the database is empty until you run `make update-data` (see below).
 
 **After the first `terraform apply`:** Check your email and click the SNS subscription confirmation link to enable alarm notifications.
 
@@ -307,9 +307,9 @@ This SSHes to the instance and runs:
 5. Runs `db_importer.py` inside a fresh container to re-import the database
 6. Starts the containers (**downtime ends**)
 
-**Expected downtime:** 2-10 minutes depending on VCF size (~1M variants).
+**Expected downtime:** ~3-10 minutes (the v19 import of ~1.27M variants takes ~3-4 minutes once the VCF is downloaded).
 
-**If the import fails:** The database will be empty (tables are truncated before re-import). Re-run `make update-data` to retry. Do not leave the application running with an incomplete import.
+**If the import fails or is killed:** The database will be empty (tables are truncated before re-import). See [Import killed / empty database](#import-killed--empty-database-exit-137) in Troubleshooting — on the t3.large instance the import can be OOM-killed if it runs alongside the live web workers. Do not leave the application running with an incomplete import.
 
 ### Verify the database
 
@@ -320,11 +320,11 @@ make verify-db ENV=prod
 This SSHes to the instance and queries the database row counts:
 
 ```text
-variants: 1000643
-cancer_types: 113
+variants: 1267112
+cancer_types: 115
 ```
 
-Check that these counts match the expected values for your data version. For `GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz`, the expected variant count is approximately 1,267,112 (the final VCF variant count from v19 acceptance testing).
+Check that these counts match the expected values for your data version. For `GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz`, the expected variant count is **1,267,112** (the final VCF variant count from v19 acceptance testing) and **115** cancer types.
 
 ---
 
@@ -368,28 +368,39 @@ Compares JSON responses from the UAT and prod instances for identical queries. B
 
 #### Running the tests
 
-Run all tests (known-value + parity against prod):
+> **Important — which URL to use.** Instances are served by Nginx on ports 80/443
+> only (the security group does **not** expose the app's port 8000), and Django
+> enforces `ALLOWED_HOSTS`, which is set to the site's domain. So the tests must be
+> pointed at the public site URL, **not** `http://<ip>:8000`. For prod that is
+> `https://genie.genomics-resources.uk`; for uat, `https://uat.genie.genomics-resources.uk`
+> (or `http://...` before its certificate is issued). Requests must also originate
+> from an allowed country (see [UK Geo-restriction](#uk-geo-restriction)).
 
-```bash
-make acceptance-test PROD_URL=http://$(cd terraform && TF_WORKSPACE=prod terraform output -raw public_ip):8000
-```
-
-Run known-value tests only (no prod comparison needed):
-
-```bash
-make acceptance-test-known-values ENV=uat
-```
-
-Run the test script directly:
+Run the known-value suite directly against the public URL (recommended):
 
 ```bash
 python3 scripts/acceptance_test.py \
-  --uat-url http://<uat-ip>:8000 \
-  --prod-url http://<prod-ip>:8000 \
+  --uat-url https://genie.genomics-resources.uk \
+  --mode known-values
+```
+
+Run known-value + parity (UAT vs prod):
+
+```bash
+python3 scripts/acceptance_test.py \
+  --uat-url https://uat.genie.genomics-resources.uk \
+  --prod-url https://genie.genomics-resources.uk \
   --mode all
 ```
 
 The script exits with code 0 if all tests pass, 1 if any fail.
+
+> **Note on the `make acceptance-test*` targets.** These resolve the instance's
+> public IP from Terraform and call `http://<ip>:8000`. That only works if port
+> 8000 is reachable and `ALLOWED_HOSTS` permits the IP — which is not the case for
+> this Nginx-fronted deployment. Prefer running the script directly against the
+> public URL as shown above. (If you specifically need the Makefile form, expose
+> 8000 and add the host to `ALLOWED_HOSTS` first.)
 
 ### Manual acceptance checklist
 
@@ -408,7 +419,8 @@ make acceptance-checklist PROD_URL=https://genie.genomics-resources.uk
 The checklist covers:
 - **Navigation** - Homepage, About page, navbar links
 - **Search** - Gene search, region search, range queries, invalid input handling
-- **Variant table** - Column display, row expansion, classification filters, allele type filters
+- **Variant table** - Column display, row expansion, consequence filters, silent-variant default, protein-position sorting/filtering
+- **Geo-restriction** - 200 from a UK connection, 403 from a non-UK connection
 - **Visual/UI** - CSS rendering, JS console errors, info modals, version string
 
 ---
@@ -492,8 +504,10 @@ make update-data ENV=uat \
 # 3. Verify database
 make verify-db ENV=uat
 
-# 4. Run automated tests (parity only if using same VCF as prod)
-make acceptance-test
+# 4. Run automated tests against the UAT site URL
+#    (parity only if UAT and prod share the same VCF version)
+python3 scripts/acceptance_test.py \
+  --uat-url https://uat.genie.genomics-resources.uk --mode known-values
 
 # 5. Manual testing
 make acceptance-checklist
@@ -505,7 +519,8 @@ make update-data ENV=prod \
   VER=v19
 
 # 7. Verify production
-make acceptance-test-known-values ENV=prod
+python3 scripts/acceptance_test.py \
+  --uat-url https://genie.genomics-resources.uk --mode known-values
 
 # 8. Tear down UAT
 make uat-down ENV=uat
@@ -565,6 +580,27 @@ bootstrap and controlled by two Terraform variables:
 ### Database import fails mid-way
 
 If `db_importer.py` fails (e.g. due to a malformed VCF or disk space), the database tables will have been truncated and the application will show no data. Re-run `make update-data` with the same arguments to retry the full import.
+
+### Import killed / empty database (exit 137)
+
+On the `t3.large` (8 GB) instance, the database import can be **OOM-killed** (the
+web container exits with code 137) if it runs while the live Gunicorn workers are
+using memory. Symptom: `make verify-db` reports `variants: 0`, or `make verify-db`
+fails with `service "web" is not running`.
+
+Recover by running the import with the web container stopped, then restarting it:
+
+```bash
+ssh ubuntu@<ip>
+cd ~/genie_nhs_website
+docker compose stop web          # free memory
+docker compose run --rm web python db_importer.py   # ~3-4 min for v19
+docker compose up -d
+sqlite3 data/db.sqlite3 'select count(*) from main_variant;'   # expect 1267112
+```
+
+To make the box more resilient, add swap (e.g. 4 GB) in `terraform/user_data.sh`
+so a future import is not killed under memory pressure.
 
 ### Application not functional after `make uat-up`
 
