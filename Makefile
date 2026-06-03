@@ -18,6 +18,7 @@ VCF           ?=
 CSV           ?=
 VER           ?=
 PROD_URL      ?=
+SCHEME        ?= https
 CERTBOT_EMAIL ?=
 
 TF_DIR  := terraform
@@ -95,23 +96,23 @@ verify-db: ## Check DB row counts on ENV instance
 		 print(\"cancer_types:\", CancerType.objects.count())"'
 
 acceptance-test: ## Run automated acceptance tests (UAT + optional parity vs prod)
-	$(eval UAT_IP := $(call tf_output,uat,public_ip))
-	@if [ -z "$(UAT_IP)" ]; then echo "ERROR: could not resolve UAT IP"; exit 1; fi
+	$(eval UAT_FQDN := $(call tf_output,uat,fqdn))
+	@if [ -z "$(UAT_FQDN)" ]; then echo "ERROR: could not resolve UAT FQDN"; exit 1; fi
 	python3 scripts/acceptance_test.py \
-		--uat-url http://$(UAT_IP):8000 \
+		--uat-url $(SCHEME)://$(UAT_FQDN) \
 		$(if $(strip $(PROD_URL)),--prod-url $(PROD_URL),)
 
 acceptance-test-known-values: ## Run known-value tests only against ENV
-	$(eval IP := $(call tf_output,$(ENV),public_ip))
-	@if [ -z "$(IP)" ]; then echo "ERROR: could not resolve IP for $(ENV)"; exit 1; fi
+	$(eval FQDN := $(call tf_output,$(ENV),fqdn))
+	@if [ -z "$(FQDN)" ]; then echo "ERROR: could not resolve FQDN for $(ENV)"; exit 1; fi
 	python3 scripts/acceptance_test.py \
-		--uat-url http://$(IP):8000 \
+		--uat-url $(SCHEME)://$(FQDN) \
 		--mode known-values
 
 acceptance-checklist: ## Print manual acceptance checklist with UAT URL
-	$(eval UAT_IP := $(call tf_output,uat,public_ip))
-	@if [ -z "$(UAT_IP)" ]; then echo "ERROR: could not resolve UAT IP"; exit 1; fi
-	@sed -e "s|__UAT_URL__|http://$(UAT_IP):8000|g" \
+	$(eval UAT_FQDN := $(call tf_output,uat,fqdn))
+	@if [ -z "$(UAT_FQDN)" ]; then echo "ERROR: could not resolve UAT FQDN"; exit 1; fi
+	@sed -e "s|__UAT_URL__|$(SCHEME)://$(UAT_FQDN)|g" \
 		-e "s|__PROD_URL__|$(if $(strip $(PROD_URL)),$(PROD_URL),https://beta.genomics-resources.uk)|g" \
 		scripts/acceptance_checklist.md
 

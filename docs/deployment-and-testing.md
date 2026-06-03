@@ -396,11 +396,13 @@ python3 scripts/acceptance_test.py \
 The script exits with code 0 if all tests pass, 1 if any fail.
 
 > **Note on the `make acceptance-test*` targets.** These resolve the instance's
-> public IP from Terraform and call `http://<ip>:8000`. That only works if port
-> 8000 is reachable and `ALLOWED_HOSTS` permits the IP — which is not the case for
-> this Nginx-fronted deployment. Prefer running the script directly against the
-> public URL as shown above. (If you specifically need the Makefile form, expose
-> 8000 and add the host to `ALLOWED_HOSTS` first.)
+> public FQDN from the Terraform `fqdn` output and call `$(SCHEME)://<fqdn>`
+> (`SCHEME` defaults to `https`). This goes through Nginx on 443/80 and satisfies
+> the domain-based `ALLOWED_HOSTS`, so the targets work against the infrastructure
+> created here. Before a certificate has been issued for a new environment, pass
+> `SCHEME=http` (e.g. `make acceptance-test-known-values ENV=uat SCHEME=http`).
+> Requests must also originate from an allowed country (see
+> [UK Geo-restriction](#uk-geo-restriction)).
 
 ### Manual acceptance checklist
 

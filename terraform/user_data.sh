@@ -149,6 +149,7 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CWCON
     "append_dimensions": {
       "InstanceId": "$${aws:InstanceId}"
     },
+    "aggregation_dimensions": [["InstanceId", "path"]],
     "metrics_collected": {
       "disk": {
         "measurement": ["used_percent"],

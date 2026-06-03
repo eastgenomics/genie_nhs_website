@@ -36,7 +36,9 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
 
 # --- Disk usage alarm (>80%) ---
 # Requires the CloudWatch agent to be running and publishing the
-# "disk_used_percent" metric (configured in user_data.sh).
+# "disk_used_percent" metric (configured in user_data.sh). The agent config
+# uses aggregation_dimensions [[InstanceId, path]] so the published metric has
+# exactly the InstanceId + path dimensions this alarm matches on.
 
 resource "aws_cloudwatch_metric_alarm" "disk_high" {
   count               = local.is_prod ? 1 : 0
