@@ -72,7 +72,6 @@ def get_variant_cancer_type_pcs(variant_id) -> list:
         }
         data.append(row)
     return data
-    
 
 def get_variants(search_key: str, search_value: str) -> list:
     """
@@ -150,6 +149,7 @@ def get_variants(search_key: str, search_value: str) -> list:
             'hgvs_p': _format_hgvs(db_variant.hgvs_p),
             'gene': db_variant.gene_symbol,
             'refseq_transcript': db_variant.refseq_transcript,
+            'protein_pos': db_variant.protein_pos,
             'haemonc_cancers_count': db_variant.haemonc_cancers_count,
             'solid_cancers_count': db_variant.solid_cancers_count,
             'all_cancers_count': db_variant.all_cancers_count,

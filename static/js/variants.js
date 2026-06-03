@@ -214,36 +214,104 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     /**
-     * A custom filter for the Position column. Supports range (start-end) search.
-     * Official bootstrap-table doc:
-     * https://bootstrap-table.com/docs/api/table-options/#detailformatter
-     * 
-     * @param {text} - The search text.
-     * @param {value} - The value of the column to compare.
-     * @param {field} - The column field name.
-     * @param {data} - The table data.
-     * @returns {Boolean} - Return false to filter out the current column/row.
-     *                      Return true to not filter out the current column/row.
+     * Parses a position value into a { start, end } object.
+     * Accepts integers ("45"), ranges ("45-120"), or partial ranges where
+     * either bound is unknown ("45-?" or "?-4"). Unknown bounds collapse to
+     * the known bound, giving a point range (e.g. "45-?" → { start: 45, end: 45 },
+     * "?-4" → { start: 4, end: 4 }). Returns null for fully unknown/missing values.
+     *
+     * @param {*} val - Raw position value from the table cell.
+     * @returns {{ start: number, end: number } | null}
      */
-    window.filterCustomIntegerSearch = function (text, value, field, data) {
-        if (!text) return true;
+    function parsePosition(val) {
+        if (val == null) return null;
 
-        if (String(text).indexOf('-') !== -1) {
-            let range = text.split('-');
-            let start = Number(range[0]);
-            let end = Number(range[1]);
-            value = Number(value);
-            return value >= start && value <= end;
-        } else if (String(text).startsWith('>')) {
-            let pos = Number(text.replace('>', '').trim())
-            return value >= pos
-        } else if (String(text).startsWith('<')) {
-            let pos = Number(text.replace('<', '').trim())
-            return value <= pos
-        } else {
-            return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
-        }  
+        const str = String(val).trim();
+
+        // Empty, unknown ("?"), bare dash, or null string → missing value
+        if (!str || str === '?' || str === '-' || str === 'null') return null;
+
+        if (str.includes('-')) {
+            const [rawStart, rawEnd] = str.split('-');
+
+            const startUnknown = rawStart === '?' || rawStart === '';
+            const endUnknown   = rawEnd   === '?' || rawEnd   === '';
+
+            const startNum = startUnknown ? null : Number(rawStart);
+            const endNum   = endUnknown   ? null : Number(rawEnd);
+
+            // Both bounds unknown → missing value
+            if (startUnknown && endUnknown) return null;
+
+            // Unparseable numeric bound → invalid, treat as missing
+            if (!startUnknown && Number.isNaN(startNum)) return null;
+            if (!endUnknown   && Number.isNaN(endNum))   return null;
+
+            // Collapse unknown bound to the known one (point range)
+            const start = startUnknown ? endNum   : startNum;
+            const end   = endUnknown   ? startNum : endNum;
+
+            return { start, end };
+        }
+
+        const num = Number(str);
+        if (Number.isNaN(num)) return null;
+        return { start: num, end: num };
     }
+
+
+    /**
+     * A custom filter for numeric position columns. Supports four query formats:
+     *   ">N"      → values strictly greater than N
+     *   "<N"      → values strictly less than N
+     *   "A-B"     → range overlap (does the position span overlap [A, B]?)
+     *   "N"       → exact point-in-range (does the position span include N?)
+     *   other     → plain text fallback (string contains query?)
+     * Unknown/missing positions never match numeric queries.
+     * Used for both the Position (pos) and Protein position (protein_pos) columns.
+     *
+     * @param {string} text  - The search text entered by the user.
+     * @param {*}      value - The raw cell value to test.
+     * @returns {boolean} - true to show the row, false to hide it.
+     */
+
+    window.filterCustomRangeFieldSearch = function (text, value) {
+        if (!text) return true; // No active filter → always show
+
+        const pos = parsePosition(value);
+        const query = String(text).trim();
+
+        // >N: strictly greater than N (pos must extend past N)
+        if (query.startsWith('>')) {
+            const n = Number(query.slice(1).trim());
+            return !Number.isNaN(n) && !!pos && pos.end > n;
+        }
+
+        // <N: strictly less than N (pos must start before N)
+        if (query.startsWith('<')) {
+            const n = Number(query.slice(1).trim());
+            return !Number.isNaN(n) && !!pos && pos.start < n;
+        }
+
+        // Range query: check if [pos.start, pos.end] overlaps [start, end]
+        if (query.includes('-')) {
+            const queryPos = parsePosition(query);
+            if (queryPos) {
+                return !!pos && pos.start <= queryPos.end && pos.end >= queryPos.start;
+            }
+            // Non-numeric dashed query: use text fallback
+            return String(value ?? '').toLowerCase().includes(query.toLowerCase());
+        }
+
+        // Exact position: check if the number falls within the position's span
+        const exact = Number(query);
+        if (!Number.isNaN(exact)) {
+            return !!pos && pos.start <= exact && pos.end >= exact;
+        }
+
+        // Non-numeric query: plain string match against the raw value
+        return String(value ?? '').toLowerCase().includes(query.toLowerCase());
+    };
 
 
     // Filter table based on selected variant categories and allele types.

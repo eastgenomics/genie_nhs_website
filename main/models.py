@@ -41,6 +41,7 @@ class Variant(models.Model):
     consequence = models.CharField(max_length=600, help_text='Consequence')
     hgvs_c = models.TextField(help_text='HGVSc', null=True)
     hgvs_p = models.TextField(help_text='HGVSp', null=True)
+    protein_pos = models.TextField(help_text='Protein_position', null=True)
 
     original_description = models.TextField(help_text='Genie_description')
     original_contig = models.CharField(max_length=100, 
