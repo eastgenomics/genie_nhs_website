@@ -4,13 +4,68 @@
 
 <div class="container-fluid px-5">
     <div class="row mt-3 p-4 mx-auto bg-white shadow card-1000">
-        <h4>GENIE {{ GENIE_VERSION }} - Generation of count data</h4>
+        <h2>GENIE {{ GENIE_VERSION }} - Generation of count data</h2>
         <hr>
         <p>Count data are generated to assist with variant interpretation according to the 
             <a href="https://www.acgs.uk.com/media/12831/svig-uk_guidelines_v10_-_post-acgs_ratification_final_submit01.pdf">
                 UK Somatic Variant Interpretation Guidelines (S-VIG)</a>.
         </p>
-        <h5>Count details</h5>
+        <h3>Data pre-processing</h3>
+
+        <p>GENIE data are provided for download in MAF format (GRCh37) against specific MSKCC transcripts.
+            To annotate against MANE transcripts as priority, the variants were processed as follows:
+        </p>
+
+        <ol>
+            <li>
+                <strong>Converted to VCF format</strong>
+                <ol type="a" class="ms-4">
+                    <li>
+                        During this process variants with mismatched reference bases according to GRCh37 were excluded.
+                    </li>
+                </ol>
+            </li>
+
+            <li>
+                <strong>Normalised (GRCh37) using bcftools v1.23</strong>
+                <ol type="a" class="ms-4">
+                    <li>
+                        Variants within the GENIE dataset are provided by separate submitting institutions and no
+                        normalisation is performed, therefore variants were normalised (left-aligned and made
+                        parsimonious) to ensure each unique variant was represented in the same way across institutions.
+                    </li>
+                </ol>
+            </li>
+
+            <li>
+                <strong>Lifted over from GRCh37 to GRCh38 using Picard LiftoverVcf v3.3.0</strong>
+                <ol type="a" class="ms-4">
+                    <li>
+                        Variants which failed to lift over were removed.
+                    </li>
+                </ol>
+            </li>
+
+            <li>
+                <strong>Re-annotated in GRCh38 using the Ensembl Variant Effect Predictor (VEP) v115.2</strong>
+                <ol type="a" class="ms-4">
+                    <li>
+                        The <code>--pick</code> parameter was used to report one block of annotation per variant; this
+                        prioritises annotation against MANE transcripts using the order described
+                        <a href="https://www.ensembl.org/info/docs/tools/vep/script/vep_other.html#pick">here</a>.
+                    </li>
+                    <li>
+                        Annotations for Hugo_Symbol, Consequence, RefSeq, HGVSc, HGVSp, and Protein_position were
+                        replaced with the annotations from VEP v115.2 in GRCh38 prior to counting.
+                        <strong>Note</strong>: the Variant_Classification field is no longer available as this is not
+                        annotated by VEP.
+                    </li>
+                </ol>
+            </li>
+        </ol>
+
+        <h3>Generating patient-level counts</h3>
+
         <table class="table">
             <thead>
                 <tr>
@@ -23,65 +78,475 @@
                 <tr>
                     <td><strong>Same nucleotide change</strong></td>
                     <td>All variants.</td>
-                    <td>Variants are grouped by GRCh38 CHROM, POS, REF and ALT and the number of unique patients are counted.
+                    <td>
+                        Variants are grouped by GRCh38 CHROM, POS, REF and ALT and the number of unique patients are counted.
                     </td>
                 </tr>
                 <tr>
                     <td><strong>Same amino acid change</strong></td>
                     <td>All variants with <code>HGVSp</code> notation present.</td>
-                    <td>Variants are grouped by <code>Hugo_Symbol</code>, <code>Transcript_ID</code> and <code>HGVSp</code> and
-                        the number of unique patients are counted.</td>
+                    <td>
+                        Variants are grouped by <code>Hugo_Symbol</code>, <code>RefSeq</code> 
+                        and <code>HGVSp</code> and the number of unique patients are counted.
+                    </td>
                 </tr>
                 <tr>
-                    <td><strong>Downstream frameshift (truncating)</strong></td>
-                    <td>Any variants with a <code>Variant_Classification</code> of <code>Frame_Shift_Del</code>,
-                        <code>Frame_Shift_Ins</code> or <code>Nonsense_Mutation</code> which have "Ter" in the
-                        <code>HGVSp</code> notation.</td>
-                    <td>The first position is extracted from the <code>HGVSc</code> notation and the number of unique patients
-                        with downstream frameshift (truncating) variants with the same <code>Hugo_Symbol</code> and
-                        <code>Transcript_ID</code> are counted.</td>
+                    <td><strong>Same or downstream frameshift (truncating)</strong></td>
+                    <td>
+                        Any variants with a <code>Consequence</code> of <code>frameshift_variant</code> 
+                        or <code>stop_gained</code> which have "Ter" (and not "ext") in the <code>HGVSp</code> notation.
+                    </td>
+                    <td>
+                        The first position from the <code>Protein_position</code> is extracted and 
+                        the number of unique patients with downstream frameshift (truncating) variants 
+                        for the same <code>Hugo_Symbol</code> and <code>RefSeq</code> are counted.
+                    </td>
                 </tr>
                 <tr>
-                    <td><strong>Inframe deletions</strong></td>
-                    <td>Any variants with a <code>Variant_Classification</code> equal to <code>In_Frame_Del</code> with
-                        <code>HGVSp</code> notation present.</td>
-                    <td>For each variant, the deletion range is extracted from the <code>HGVSp</code> notation and the number of
-                        unique patients with an inframe deletion with the same <code>Hugo_Symbol</code> and
-                        <code>Transcript_ID</code> nested within the range are counted.</td>
+                    <td><strong>Nested inframe deletions</strong></td>
+                    <td>
+                        Any variants with a <code>Consequence</code> equal to 
+                        <code>inframe_deletion</code> with <code>HGVSp</code> notation present.
+                    </td>
+                    <td>
+                        For each variant, the deletion range is extracted from the <code>Protein_position</code>
+                         and the number of unique patients with an inframe deletion with the same <code>Hugo_Symbol</code>
+                         and <code>RefSeq</code> which affects the same range or is nested within the range are counted.
+                    </td>
                 </tr>
             </tbody>
         </table>
-        <h5>Counting principles</h5>
-        <p>A variant can be present multiple times for the same patient, which can be for the same or different cancer types.
-            Example scenario where a patient has two tests performed:</p>
+
+        <h4>Counting principles</h4>
+        <p>A variant may be present within GENIE data multiple times for the same patient, which can be for the same or different cancer types. 
+            If a patient had two tests performed for two different cancer types:</p>
         <ol>
             <li>Ovarian Cancer</li>
             <li>Leukemia</li>
         </ol>
-        <p>All variants from test 1 for this patient go into the counts for cancer 1 (Ovarian Cancer) and all variants from test
-            2 go into the counts for cancer 2 (Leukemia). However, counts for all cancers (and grouped counts for haemonc or
-            solid cancers) do not double count any variants for this patient shared between cancer 1 & 2.</p>
-        <h5>Annotations</h5>
-        <p>Annotations, including transcripts, are taken from the GENIE data. 39 genes are annotated against multiple
-            transcripts:</p>
-        <blockquote class="blockquote">
-            <p class="mb-0">RUNX1, HIST1H3D, SESN1, TAP2, RUNX1T1, ERRFI1, DYNC1I1, TPM1, PKD1L2, RHOT1, RRAS2, FGF14, SGK1, INPP5D, CIC,
-                PTPRS, SDHD, BCL6, MECOM, IGF1, KCNIP1, CLDN18, CUX1, SQSTM1, FGF5, PTPRB, ABL1, NRG1, MAF, ESR1, ETS1, PGBD5,
-                TERT, SHANK2, FGF6, HSP90AA1, APC, PPARG, HDAC9</p>
-        </blockquote>
-        <h5>Normalisation duplicates</h5>
-        <p>Variants in GENIE are provided by separate submitting institutions and no normalisation is performed within GENIE
-            itself. Variants were therefore converted from MAF to VCF description (GRCh37) and normalised (left-aligned and made
-            parsimonious), which identified 3038 variants with a differing representation within GENIE which normalised to the
-            same GRCh37 variant. For these variants, the <code>Consequence</code>, <code>HGVSc</code>, <code>HGVSp</code> and
-            <code>Variant_Classification</code> were regenerated against the same <code>Transcript_ID</code> prior to counting.
+        <p>The patient would contribute towards the counts for both cancer 1 (Ovarian Cancer) and cancer 2 (Leukemia). 
+            However, counts for all cancers (and grouped counts for haemonc or solid cancers) would not double count 
+            any variants for this patient shared between cancer 1 & 2.
         </p>
-        <h5>Variants removed</h5>
+        
+        <div class="alert alert-warning" role="alert">
+            <h6 class="text-center"><b>Warning</b></h6>
+            If you are generating a count by manually grouping certain cancer types, 
+            it is currently not obvious if a patient is duplicated in the cancer types of interest.
+        </div>
+
+        <h4>Examples</h4>
+
+        <h5>Missense variants</h5>
+        <p>Rows in re-annotated GENIE data for two different variants with the same HGVSp:</p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Consequence</th>
+                    <th>HGVSc</th>
+                    <th>HGVSp</th>
+                    <th>PATIENT ID</th>
+                    <th>CANCER TYPE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Missense variant</td>
+                    <td><code>NM_000546.6:c.807C&gt;G</code></td>
+                    <td><code>NP_000537.3:p.Ser269Arg</code></td>
+                    <td>GENIE-DFCI-325916</td>
+                    <td>Colorectal Cancer</td>
+                </tr>
+                <tr>
+                    <td>Missense variant</td>
+                    <td><code>NM_000546.6:c.807C&gt;G</code></td>
+                    <td><code>NP_000537.3:p.Ser269Arg</code></td>
+                    <td>GENIE-DFCI-617112</td>
+                    <td>Pancreatic Cancer</td>
+                </tr>
+                <tr>
+                    <td>Missense variant</td>
+                    <td><code>NM_000546.6:c.805A&gt;C</code></td>
+                    <td><code>NP_000537.3:p.Ser269Arg</code></td>
+                    <td>GENIE-MSK-P-0091153</td>
+                    <td>Mature B-Cell Neoplasms</td>
+                </tr>
+                <tr>
+                    <td>Missense variant</td>
+                    <td><code>NM_000546.6:c.805A&gt;C</code></td>
+                    <td><code>NP_000537.3:p.Ser269Arg</code></td>
+                    <td>GENIE-UHN-689198</td>
+                    <td>Non-Small Cell Lung Cancer</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>Counts generated:</p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Count type</th>
+                    <th>Cancer grouping</th>
+                    <th class="text-end">c.807C&gt;G</th>
+                    <th class="text-end">c.805A&gt;C</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td rowspan="7"><strong>Same Nucleotide Change</strong></td>
+                    <td>All Cancers</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">2</td>
+                </tr>
+                <tr>
+                    <td>Haemonc Cancers</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Solid Cancers</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Pancreatic Cancer</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">-</td>
+                </tr>
+                <tr>
+                    <td>Colorectal Cancer</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">-</td>
+                </tr>
+                <tr>
+                    <td>Mature B Cell Neoplasms</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Non-Small Cell Lung Cancer</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td rowspan="7"><strong>Same Amino Acid Change</strong></td>
+                    <td>All Cancers</td>
+                    <td class="text-end">4</td>
+                    <td class="text-end">4</td>
+                </tr>
+                <tr>
+                    <td>Haemonc Cancers</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Solid Cancers</td>
+                    <td class="text-end">3</td>
+                    <td class="text-end">3</td>
+                </tr>
+                <tr>
+                    <td>Pancreatic Cancer</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Mature B Cell Neoplasms</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Non-Small Cell Lung Cancer</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Colorectal Cancer</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+            </tbody>
+        </table>        
+
+        <h5>Frameshift (truncating) variants</h5>
+        <p>Rows in re-annotated GENIE data for three different variants:</p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Consequence</th>
+                    <th>HGVSc</th>
+                    <th>HGVSp</th>
+                    <th>Protein position</th>
+                    <th>PATIENT ID</th>
+                    <th>CANCER TYPE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Frameshift variant</td>
+                    <td><code>NM_001282717.2:<br>c.3052dup</code></td>
+                    <td><code>NP_001269646.1:<br>p.Arg1018ProfsTer62</code></td>
+                    <td>1018</td>
+                    <td>GENIE-COLU-00170</td>
+                    <td>Soft Tissue Sarcoma</td>
+                </tr>
+                <tr>
+                    <td>Frameshift variant</td>
+                    <td><code>NM_001282717.2:<br>c.3052dup</code></td>
+                    <td><code>NP_001269646.1:<br>p.Arg1018ProfsTer62</code></td>
+                    <td>1018</td>
+                    <td>GENIE-COLU-1828</td>
+                    <td>Soft Tissue Sarcoma</td>
+                </tr>
+                <tr>
+                    <td>Frameshift variant</td>
+                    <td><code>NM_001282717.2:<br>c.1728del</code></td>
+                    <td><code>NP_001269646.1:<br>p.Thr577LeufsTer58</code></td>
+                    <td>576</td>
+                    <td>GENIE-COLU-2025</td>
+                    <td>Soft Tissue Sarcoma</td>
+                </tr>
+                <tr>
+                    <td>Frameshift variant</td>
+                    <td><code>NM_001282717.2:<br>c.1435_1436insG</code></td>
+                    <td><code>NP_001269646.1:<br>p.Gln479ArgfsTer14</code></td>
+                    <td>479</td>
+                    <td>GENIE-COLU-2190</td>
+                    <td>Breast Cancer</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>Counts generated (based on Protein_position):</p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Count type</th>
+                    <th>Cancer grouping</th>
+                    <th class="text-end">c.3052dup</th>
+                    <th class="text-end">c.1728del</th>
+                    <th class="text-end">c.1435_1436insG</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td rowspan="4"><strong>Same Nucleotide Change</strong></td>
+                    <td>All Cancers</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Solid Cancers</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Soft Tissue Sarcoma</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">-</td>
+                </tr>
+                <tr>
+                    <td>Breast Cancer</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td rowspan="4"><strong>Same Amino Acid Change</strong></td>
+                    <td>All Cancers</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Solid Cancers</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Soft Tissue Sarcoma</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">-</td>
+                </tr>
+                <tr>
+                    <td>Breast Cancer</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td rowspan="4"><strong>Same Or Downstream Truncating Variants</strong></td>
+                    <td>All Cancers</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">3</td>
+                    <td class="text-end">4</td>
+                </tr>
+                <tr>
+                    <td>Solid Cancers</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">3</td>
+                    <td class="text-end">4</td>
+                </tr>
+                <tr>
+                    <td>Soft Tissue Sarcoma</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">3</td>
+                    <td class="text-end">3</td>
+                </tr>
+                <tr>
+                    <td>Breast Cancer</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h5>Inframe deletions</h5>
+        <p>Rows in re-annotated GENIE data for three different variants with some nesting (based on Protein_position):</p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Consequence</th>
+                    <th>HGVSc</th>
+                    <th>HGVSp</th>
+                    <th>Protein position</th>
+                    <th>PATIENT ID</th>
+                    <th>CANCER TYPE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Inframe deletion</td>
+                    <td><code>NM_003722.5:<br>c.567_569del</code></td>
+                    <td><code>NP_003713.3:<br>p.Ala190del</code></td>
+                    <td>189-190</td>
+                    <td>GENIE-MSK-P-0104506</td>
+                    <td>Non-Small Cell Lung Cancer</td>
+                </tr>
+                <tr>
+                    <td>Inframe deletion</td>
+                    <td><code>NM_003722.5:<br>c.563_568del</code></td>
+                    <td><code>NP_003713.3:<br>p.Lys188_Ala190delinsThr</code></td>
+                    <td>188-190</td>
+                    <td>GENIE-MSK-P-0029775</td>
+                    <td>Non-Small Cell Lung Cancer</td>
+                </tr>
+                <tr>
+                    <td>Inframe deletion</td>
+                    <td><code>NM_003722.5:<br>c.563_571del</code></td>
+                    <td><code>NP_003713.3:<br>p.Lys188_Ala190del</code></td>
+                    <td>188-191</td>
+                    <td>GENIE-MSK-P-0109964</td>
+                    <td>Vaginal Cancer</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>Counts generated:</p>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Count type</th>
+                    <th>Cancer grouping</th>
+                    <th class="text-end">c.567_569del</th>
+                    <th class="text-end">c.563_568del</th>
+                    <th class="text-end">c.563_571del</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td rowspan="4"><strong>Same Nucleotide Change</strong></td>
+                    <td>All Cancers</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Solid Cancers</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Non-Small Cell Lung Cancer</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">-</td>
+                </tr>
+                <tr>
+                    <td>Vaginal Cancer</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td rowspan="4"><strong>Same Amino Acid Change</strong></td>
+                    <td>All Cancers</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Solid Cancers</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td>Non-Small Cell Lung Cancer</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">-</td>
+                </tr>
+                <tr>
+                    <td>Vaginal Cancer</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+                <tr>
+                    <td rowspan="4"><strong>Nested Inframe Deletions</strong></td>
+                    <td>All Cancers</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">3</td>
+                </tr>
+                <tr>
+                    <td>Solid Cancers</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">3</td>
+                </tr>
+                <tr>
+                    <td>Non-Small Cell Lung Cancer</td>
+                    <td class="text-end">1</td>
+                    <td class="text-end">2</td>
+                    <td class="text-end">2</td>
+                </tr>
+                <tr>
+                    <td>Vaginal Cancer</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end">1</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>Variants removed</h4>
         <ul>
-            <li>732 variants with a <code>Hugo_Symbol</code> of "Unknown" were removed.</li>
-            <li>3 variants were removed due to a mismatch with the GRCh37 reference when converting from MAF to VCF description.
-            </li>
-            <li>684 variants failed to liftover from GRCh37 -> GRCh38 and were removed.</li>
+            <li>1118 variants which were not annotated against a gene (empty VEP symbol) were removed.</li>
+            <li>3 variants were removed due to a mismatch with the GRCh37 reference when converting from MAF to VCF description.</li>
+            <li>830 variants failed to liftover from GRCh37 -&gt; GRCh38 and were removed.</li>
             <li>2 variants on contig 22_KI270928v1_alt were removed.</li>
         </ul>
     </div>

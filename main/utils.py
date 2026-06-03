@@ -60,7 +60,7 @@ VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT = {
 VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT = dict(enumerate(VEP_CSQ_TERMS))
 
 
-def get_worst_csq_display_term(csqs: str) -> str:
+def get_worst_csq_term(csqs: str, raw=0) -> str:
     """
     Return the most severe consequence (human-readable display term) from an
     Ensembl VEP consequences string.
@@ -70,74 +70,80 @@ def get_worst_csq_display_term(csqs: str) -> str:
     csqs : str
         VEP consequences delimited by '&' (standard) or ',' (tolerated), e.g.
         "non_coding_transcript_exon_variant&non_coding_transcript_variant"
+    
+    raw : int, optional
+        Whether the function should return the display value (the value) or the
+        raw value (the key). Defaults to 0, which displays the display value.
 
     Returns
     -------
     str
-        Display term for the most severe consequence, e.g.
-        "Non coding transcript exon variant".
+        Display or raw term for the most severe consequence, e.g.
+        "Non coding transcript exon variant" or "non_coding_transcript_variant".
     """
+
     csqs_list = csqs.replace(',', '&').split('&')
     if not csqs_list:
         return ''
     # Fail-fast sentinel on unknown terms to align with importer validation.
     if any(csq not in VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT for csq in csqs_list):
         return ''
+    
     worst_csq_index = min(VEP_CSQ_TERM_TO_SEVERITY_RANK_DICT[csq] 
                           for csq in csqs_list)
     worst_csq = VEP_CSQ_SEVERITY_RANK_TO_TERM_DICT[worst_csq_index]
-    return VEP_CSQ_TERMS[worst_csq]
+    if raw == 1:
+        return worst_csq
+    elif raw == 0:
+        return VEP_CSQ_TERMS[worst_csq]
 
-# Variant classifications grouped by categories.
-LOF_CLASSIFICATIONS = {
-    'Frame_Shift_Del',
-    'Frame_Shift_Ins',
-    'Nonsense_Mutation',
-    'Splice_Site',
+LOF_VEP_CONSEQUENCES = {
+    'frameshift_variant',
+    'stop_gained',
+    'splice_acceptor_variant',
+    'splice_donor_variant',
 }
 
-# A variant is classified as PTV LoF if it has one of these 
-# classifications AND "Ter" AA in HGVSp. 
-LOF_CANDIDATE_PTV_CLASSIFICATIONS = {
-    'Frame_Shift_Del',
-    'Frame_Shift_Ins',
-    'Nonsense_Mutation',
+LOF_CANDIDATE_PTV_VEP_CSQS_TERMS = {
+    'frameshift_variant',
+    'stop_gained',
 }
 
-MISSENSE_AND_INFRAME_INDEL_CLASSIFICATIONS = {
-    'In_Frame_Ins',
-    'In_Frame_Del',
-    'Nonstop_Mutation',
-    'Missense_Mutation',
-    'Translation_Start_Site',
+MISSENSE_AND_INFRAME_INDEL_VEP_CSQS_TERMS = {
+    'missense_variant',
+    'inframe_insertion',
+    'inframe_deletion',
+    'protein_altering_variant',
+    'stop_lost',
+    'start_lost',
 }
 
-def get_classification_category(classification: str, hgvs_p: str) -> str:
+def get_consequence_category(csq: str, hgvs_p: str) -> str:
     """
-    Return variant classification category based on its classification
+    Return variant consequence category based on its VEP consequence
     and HGVSp notation.
 
     Parameters
     ----------
-    classification : str
-        GENIE variant classification (e.g. Nonsense_Mutation)
+    csq : str
+        VEP consequence term (e.g., stop_gained)
     hgvs_p : str
         Variant HGVSp notation (e.g. p.(Ala2Val))
 
     Returns
     -------
     str
-        Variant classification category: "PTV LoF", "non-PTV LoF",
+        VEP consequence category: "PTV LoF", "non-PTV LoF",
         "Missense / Inframe indel", "Silent", "Other".
     """
-    if (classification in LOF_CANDIDATE_PTV_CLASSIFICATIONS 
+    if (csq in LOF_CANDIDATE_PTV_VEP_CSQS_TERMS
             and hgvs_p and 'Ter' in hgvs_p):
         return 'PTV LoF'
-    elif classification in LOF_CLASSIFICATIONS:
+    elif csq in LOF_VEP_CONSEQUENCES:
         return 'non-PTV LoF'
-    elif classification in MISSENSE_AND_INFRAME_INDEL_CLASSIFICATIONS:
+    elif csq in MISSENSE_AND_INFRAME_INDEL_VEP_CSQS_TERMS:
         return 'Missense / Inframe indel'
-    elif classification == 'Silent':
+    elif csq == 'synonymous_variant':
         return 'Silent'
     else:
         return 'Other'

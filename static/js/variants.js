@@ -3,12 +3,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const context = JSON.parse(document.getElementById('page-context').textContent);
 
     // List of checkboxes used to filter variants based on their
-    // 1. Classification (e.g. PTV LoF, Silent)
-    const $classFilters = $('.variant-classification-filter');
+    // 1. Consequence (e.g. PTV LoF, Silent)
+    // Exclude static checkboxes from the info modal (var_classification_filters.html)
+    const $csqFilters = $('.variant-consequence-filter:not(.static-control)');
     // 2. Allele type (e.g. SNVs, Indels)
     const $alleleFilters = $('.allele-filter');
     // All checkbox filters. 
-    const $checkboxFilters = $([...$classFilters, ...$alleleFilters])
+    const $checkboxFilters = $([...$csqFilters, ...$alleleFilters])
 
     // Get variant extended row subtable ID.
     function getVariantCancerTypesSubtableID(variantID) {
@@ -88,16 +89,17 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearFilters() {
         // Clear filters.
         $table.bootstrapTable('clearFilterControl');
-        // Reload table data.
-        $table.bootstrapTable('filterBy', {});
-        // Update the displayed variant count.
-        updateVariantCount();
         // Reset all filter checkboxes.
         $checkboxFilters.each(function() {
-            this.checked = true;
+            // Use default checked values if specified, otherwise assume that default is checked.
+            const defaultChecked = $(this).attr('default-checked')
+            this.checked = (defaultChecked !== undefined) ? defaultChecked === "true" : true;
         });
-    }
-
+        // Reload table data.
+        filterTable()
+        // Update the displayed variant count.
+        updateVariantCount();
+    };
 
     // Clear filters when user clicks on the button.
     $('#clear-filters-btn').on('click', clearFilters);
@@ -180,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <th class="align-middle" data-field="category" data-align="center" data-halign="center" data-sortable="true" data-width="50">Cancer<br>Category</th>
                         <th class="align-middle" data-field="same_nucleotide_change_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same nucleotide<br>change patient count</th>
                         <th class="align-middle" data-field="same_amino_acid_change_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same amino acid change<br>patient count</th>
-                        <th class="align-middle" data-field="same_or_downstream_truncating_variants_per_cds_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same or downstream truncating<br>variants per CDS patient count</th>
+                        <th class="align-middle" data-field="same_or_downstream_truncating_variants_per_aa_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Same or downstream truncating<br>variants per AA patient count</th>
                         <th class="align-middle" data-field="nested_inframe_deletions_per_aa_pc" data-align="right" data-halign="center" data-sortable="true" data-width="50">Nested inframe deletions<br>per AA patient count</th>
                         <th class="align-middle" data-field="cancer_n" data-halign="center" data-align="right" data-sortable="true" data-width="50">Total cancer<br>patient count</th>
                     </tr>
@@ -212,50 +214,118 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     /**
-     * A custom filter for the Position column. Supports range (start-end) search.
-     * Official bootstrap-table doc:
-     * https://bootstrap-table.com/docs/api/table-options/#detailformatter
-     * 
-     * @param {text} - The search text.
-     * @param {value} - The value of the column to compare.
-     * @param {field} - The column field name.
-     * @param {data} - The table data.
-     * @returns {Boolean} - Return false to filter out the current column/row.
-     *                      Return true to not filter out the current column/row.
+     * Parses a position value into a { start, end } object.
+     * Accepts integers ("45"), ranges ("45-120"), or partial ranges where
+     * either bound is unknown ("45-?" or "?-4"). Unknown bounds collapse to
+     * the known bound, giving a point range (e.g. "45-?" → { start: 45, end: 45 },
+     * "?-4" → { start: 4, end: 4 }). Returns null for fully unknown/missing values.
+     *
+     * @param {*} val - Raw position value from the table cell.
+     * @returns {{ start: number, end: number } | null}
      */
-    window.filterCustomIntegerSearch = function (text, value, field, data) {
-        if (!text) return true;
+    function parsePosition(val) {
+        if (val == null) return null;
 
-        if (String(text).indexOf('-') !== -1) {
-            let range = text.split('-');
-            let start = Number(range[0]);
-            let end = Number(range[1]);
-            value = Number(value);
-            return value >= start && value <= end;
-        } else if (String(text).startsWith('>')) {
-            let pos = Number(text.replace('>', '').trim())
-            return value >= pos
-        } else if (String(text).startsWith('<')) {
-            let pos = Number(text.replace('<', '').trim())
-            return value <= pos
-        } else {
-            return String(value).toLowerCase().indexOf(String(text).toLowerCase()) !== -1;
-        }  
+        const str = String(val).trim();
+
+        // Empty, unknown ("?"), bare dash, or null string → missing value
+        if (!str || str === '?' || str === '-' || str === 'null') return null;
+
+        if (str.includes('-')) {
+            const [rawStart, rawEnd] = str.split('-');
+
+            const startUnknown = rawStart === '?' || rawStart === '';
+            const endUnknown   = rawEnd   === '?' || rawEnd   === '';
+
+            const startNum = startUnknown ? null : Number(rawStart);
+            const endNum   = endUnknown   ? null : Number(rawEnd);
+
+            // Both bounds unknown → missing value
+            if (startUnknown && endUnknown) return null;
+
+            // Unparseable numeric bound → invalid, treat as missing
+            if (!startUnknown && Number.isNaN(startNum)) return null;
+            if (!endUnknown   && Number.isNaN(endNum))   return null;
+
+            // Collapse unknown bound to the known one (point range)
+            const start = startUnknown ? endNum   : startNum;
+            const end   = endUnknown   ? startNum : endNum;
+
+            return { start, end };
+        }
+
+        const num = Number(str);
+        if (Number.isNaN(num)) return null;
+        return { start: num, end: num };
     }
+
+
+    /**
+     * A custom filter for numeric position columns. Supports four query formats:
+     *   ">N"      → values strictly greater than N
+     *   "<N"      → values strictly less than N
+     *   "A-B"     → range overlap (does the position span overlap [A, B]?)
+     *   "N"       → exact point-in-range (does the position span include N?)
+     *   other     → plain text fallback (string contains query?)
+     * Unknown/missing positions never match numeric queries.
+     * Used for both the Position (pos) and Protein position (protein_pos) columns.
+     *
+     * @param {string} text  - The search text entered by the user.
+     * @param {*}      value - The raw cell value to test.
+     * @returns {boolean} - true to show the row, false to hide it.
+     */
+
+    window.filterCustomRangeFieldSearch = function (text, value) {
+        if (!text) return true; // No active filter → always show
+
+        const pos = parsePosition(value);
+        const query = String(text).trim();
+
+        // >N: strictly greater than N (pos must extend past N)
+        if (query.startsWith('>')) {
+            const n = Number(query.slice(1).trim());
+            return !Number.isNaN(n) && !!pos && pos.end > n;
+        }
+
+        // <N: strictly less than N (pos must start before N)
+        if (query.startsWith('<')) {
+            const n = Number(query.slice(1).trim());
+            return !Number.isNaN(n) && !!pos && pos.start < n;
+        }
+
+        // Range query: check if [pos.start, pos.end] overlaps [start, end]
+        if (query.includes('-')) {
+            const queryPos = parsePosition(query);
+            if (queryPos) {
+                return !!pos && pos.start <= queryPos.end && pos.end >= queryPos.start;
+            }
+            // Non-numeric dashed query: use text fallback
+            return String(value ?? '').toLowerCase().includes(query.toLowerCase());
+        }
+
+        // Exact position: check if the number falls within the position's span
+        const exact = Number(query);
+        if (!Number.isNaN(exact)) {
+            return !!pos && pos.start <= exact && pos.end >= exact;
+        }
+
+        // Non-numeric query: plain string match against the raw value
+        return String(value ?? '').toLowerCase().includes(query.toLowerCase());
+    };
 
 
     // Filter table based on selected variant categories and allele types.
     function filterTable() {
-        // Classification and Allele type checkbox values are the same as 
-        // values in classification_category and allele_type columns.
-        const selectedClassFilters = $classFilters.filter(':checked').map(function() {
+        // Consequence and Allele type checkbox values are the same as 
+        // values in consequence_category and allele_type columns.
+        const selectedCsqFilters = $csqFilters.filter(':checked').map(function() {
             return $(this).val();
         }).get();
         const selectedAlleleFilters = $alleleFilters.filter(':checked').map(function() {
             return $(this).val();
         }).get();
         $table.bootstrapTable('filterBy', {
-            classification_category: selectedClassFilters,
+            consequence_category: selectedCsqFilters,
             allele_type: selectedAlleleFilters,
         });
     }
@@ -272,8 +342,8 @@ document.addEventListener('DOMContentLoaded', function () {
      * Bootstrap Table triggers multiple "post-header.bs.table" events during
      * the initial load, both before and after "load-success.bs.table".
      *
-     * The "Consequence" and "Classification" selects list all unfiltered options
-     * and don't update when filters are applied, so they may show options with
+     * The "Consequence" select lists all unfiltered options
+     * when filters are applied, so they may show options with
      * no matching results.
      *
      * To improve usability, each option displays the count of matching variants
@@ -283,9 +353,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Tracks whether the table has completed its first successful load
     let tableInitialized = false
-    // Lists of all possible "Consequence" and "Classification" values (from unfiltered data)
+    // Lists of all possible "Consequence" values (from unfiltered data)
     let allVarCsqs = []
-    let allVarClasses = []
     // Stores the last known filter set to detect when filters change
     let currentFilters = null;
 
@@ -355,7 +424,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     /**
-     * Refreshes the "Consequence" and "Classification" select controls
+     * Refreshes the "Consequence" select controls
      * to reflect the number of matching variants for each option.
      * Runs with a small delay to ensure filters and data are fully updated.
      */    
@@ -375,9 +444,6 @@ document.addEventListener('DOMContentLoaded', function () {
             // Update both select controls with new counts
             var csqSelect = $('select.bootstrap-table-filter-control-consequence')[0];
             updateSelectWithCounts(csqSelect, allVarCsqs, data, 'consequence')
-
-            var classSelect = $('select.bootstrap-table-filter-control-classification')[0];
-            updateSelectWithCounts(classSelect, allVarClasses, data, 'classification')
         }, 50);
     }
 
@@ -385,16 +451,19 @@ document.addEventListener('DOMContentLoaded', function () {
     /**
      * After table data loads successfully for the first time:
      * - Mark table as initialized
-     * - Extract all unique "consequence" and "classification" values
+     * - Extract all unique "consequence" values
      * - Initialize the select controls with counts
      */
     $table.on('load-success.bs.table', function () {
+        // Get consequences and classes based on the table unfiltered data.
+        const data = $table.bootstrapTable('getData', { useCurrentPage: false });
+        allVarCsqs = [...new Set(data.map(row => row.consequence))].sort();
+
+        // Apply default table filters.
+        clearFilters()
+
         setTimeout(function() {
             tableInitialized = true;
-            const data = $table.bootstrapTable('getData', { useCurrentPage: false });
-            allVarCsqs = [...new Set(data.map(row => row.consequence))].sort();
-            allVarClasses = [...new Set(data.map(row => row.classification))].sort();
-
             updateTableSelectControls();
         }, 1000); // Delay to ensure table is fully rendered
     });
@@ -417,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const groupClass = $(this).data('group');
 
         // Uncheck all checkboxes in a group except the target one.
-        $('.' + groupClass).prop('checked', false);
+        $('.' + groupClass + ':not(.static-control)').prop('checked', false);
         $('#' + targetId).prop('checked', true);
 
         // Filter table.

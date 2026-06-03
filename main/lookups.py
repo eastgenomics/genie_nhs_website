@@ -1,5 +1,5 @@
 from main.models import CancerType, Variant, VariantCancerTypePatientCount
-from main.utils import get_worst_csq_display_term, get_classification_category
+from main.utils import get_worst_csq_term, get_consequence_category
 from functools import lru_cache
 
 
@@ -64,15 +64,14 @@ def get_variant_cancer_type_pcs(variant_id) -> list:
                 var_pc_cancer.same_nucleotide_change_pc,
             'same_amino_acid_change_pc': \
                 var_pc_cancer.same_amino_acid_change_pc,
-            'same_or_downstream_truncating_variants_per_cds_pc': \
-                var_pc_cancer.same_or_downstream_truncating_variants_per_cds_pc,
+            'same_or_downstream_truncating_variants_per_aa_pc': \
+                var_pc_cancer.same_or_downstream_truncating_variants_per_aa_pc,
             'nested_inframe_deletions_per_aa_pc': \
                 var_pc_cancer.nested_inframe_deletions_per_aa_pc,
             'cancer_n': var_pc_cancer.cancer_type.total_patient_count,
         }
         data.append(row)
     return data
-    
 
 def get_variants(search_key: str, search_value: str) -> list:
     """
@@ -105,6 +104,7 @@ def get_variants(search_key: str, search_value: str) -> list:
             # Add parentheses to HGVSp descriptions.
             if 'p.' in hgvs and 'p.(' not in hgvs:
                 hgvs = f"p.({hgvs.split('p.')[1]})"
+            hgvs = hgvs.replace('%3D', '=')
             new_hgvs.append(hgvs)
         return ', '.join(new_hgvs)
     
@@ -141,15 +141,15 @@ def get_variants(search_key: str, search_value: str) -> list:
             'chrom': db_variant.chrom,
             'pos': db_variant.pos,
             'allele_type': 'SNV' if is_snv else 'INDEL',
-            'consequence': get_worst_csq_display_term(db_variant.consequence),
-            'classification': db_variant.classification,
-            'classification_category': get_classification_category(
-                db_variant.classification, db_variant.hgvs_p
+            'consequence': get_worst_csq_term(db_variant.consequence),
+            'consequence_category': get_consequence_category(
+                get_worst_csq_term(db_variant.consequence, raw=1), db_variant.hgvs_p
             ),
             'hgvs_c': _format_hgvs(db_variant.hgvs_c),
             'hgvs_p': _format_hgvs(db_variant.hgvs_p),
             'gene': db_variant.gene_symbol,
             'refseq_transcript': db_variant.refseq_transcript,
+            'protein_pos': db_variant.protein_pos,
             'haemonc_cancers_count': db_variant.haemonc_cancers_count,
             'solid_cancers_count': db_variant.solid_cancers_count,
             'all_cancers_count': db_variant.all_cancers_count,

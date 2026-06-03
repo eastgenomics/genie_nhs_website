@@ -39,10 +39,9 @@ class Variant(models.Model):
     refseq_transcript = models.CharField(max_length=100, help_text='RefSeq', 
         null=True)
     consequence = models.CharField(max_length=600, help_text='Consequence')
-    classification = models.CharField(max_length=600, 
-        help_text='Variant_Classification')
     hgvs_c = models.TextField(help_text='HGVSc', null=True)
     hgvs_p = models.TextField(help_text='HGVSp', null=True)
+    protein_pos = models.TextField(help_text='Protein_position', null=True)
 
     original_description = models.TextField(help_text='Genie_description')
     original_contig = models.CharField(max_length=100, 
@@ -84,7 +83,7 @@ class VariantCancerTypePatientCount(models.Model):
 
     same_nucleotide_change_pc = models.PositiveIntegerField()
     same_amino_acid_change_pc = models.PositiveIntegerField()
-    same_or_downstream_truncating_variants_per_cds_pc = \
+    same_or_downstream_truncating_variants_per_aa_pc = \
         models.PositiveIntegerField()
     nested_inframe_deletions_per_aa_pc = models.PositiveIntegerField()
 
