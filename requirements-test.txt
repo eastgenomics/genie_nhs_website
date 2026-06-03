@@ -1,0 +1,2 @@
+# No external dependencies — acceptance_test.py uses only the Python standard library.
+# This file exists as a placeholder for future test dependencies.

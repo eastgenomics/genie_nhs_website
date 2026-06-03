@@ -66,9 +66,21 @@ db.sqlite3
 
 # Virtual environment
 venv
+.venv/
 
 # Data folder with GENIE VCF, cancer types csv, and SQLite database.
 data
 
 # Default static files folder for Nginx/WhiteNoise
 staticfiles
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/override.tf
+terraform/crash.log
+*.tfvars.local
+# Session memory (local only)
+memory/
