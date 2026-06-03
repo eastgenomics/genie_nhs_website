@@ -82,3 +82,5 @@ terraform/.terraform.lock.hcl
 terraform/override.tf
 terraform/crash.log
 *.tfvars.local
+# Session memory (local only)
+memory/
