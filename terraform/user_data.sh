@@ -9,6 +9,20 @@ echo "=== NHS GENIE bootstrap (${environment}) ==="
 
 export DEBIAN_FRONTEND=noninteractive
 
+# --- Configure swap ---
+# The t3.large has 8 GB RAM; the GENIE DB import (~1.27M variants) can push the
+# box into OOM if it runs alongside the live Gunicorn workers. A few GB of swap
+# makes memory-heavy operations (imports, apt upgrades) resilient.
+if ! swapon --show | grep -q '/swapfile'; then
+  fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  echo 'vm.swappiness=10' > /etc/sysctl.d/99-swappiness.conf
+  sysctl -w vm.swappiness=10
+fi
+
 # --- System updates ---
 apt-get update -y
 apt-get upgrade -y
