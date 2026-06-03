@@ -211,6 +211,8 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
             },
         )
         # KV-5: cohort denominators (cancer_n) carried on the PC rows.
+        # This variant is haemonc-only, so only cancer types with a non-zero
+        # count for it appear (no "Solid Cancers" row).
         _check_pc(
             suite, base_url,
             "KV-5  Cohort denominators (cancer_n)",
@@ -218,7 +220,6 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
             {
                 "All Cancers": 208523,
                 "Haemonc Cancers": 18695,
-                "Solid Cancers": 182170,
                 "Mature B-Cell Neoplasms": 7653,
             },
         )

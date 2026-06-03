@@ -346,7 +346,7 @@ Tests against hardcoded expected values from GENIE v19 acceptance testing
 | KV-2 | SAMHD1 20:36935111 SameAminoAcidChange | All=2, Haemonc=2, Mature B-Cell Neoplasms=1, Mature T and NK Neoplasms=1 |
 | KV-3 | SAMHD1 20:36927220 G>A (p.Arg220Ter) SameOrDownstreamTruncatingPerAA | All=21, Haemonc=20, Mature B-Cell=15, Mature T and NK=4, Histiocytosis=1, UNKNOWN=2 |
 | KV-4 | SAMHD1 20:36919495 (p.Met240del) NestedInframeDeletionsPerAA | All=1, Haemonc=1, Mature B-Cell Neoplasms=1 |
-| KV-5 | Cohort denominators (cancer_n) | All Cancers=208523, Haemonc=18695, Solid=182170, Mature B-Cell Neoplasms=7653 |
+| KV-5 | Cohort denominators (cancer_n) | All Cancers=208523, Haemonc=18695, Mature B-Cell Neoplasms=7653 |
 
 **Note:** These expected values are for `GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz`. If the data version changes, update the expected values in `scripts/acceptance_test.py`.
 
