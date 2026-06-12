@@ -1,0 +1,157 @@
+{% extends "main/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid px-5">
+    <div class="row mt-3 p-4 mx-auto bg-white shadow card-1000">
+      <h1>Release Notes</h1>
+
+      <h2>1.1.0-beta - June 2026</h2>
+
+      <p><h3>Summary</h3>
+      This update uses the latest version of the GENIE public dataset and includes changes to variant counts due to annotation of variants in GRCh38 against updated transcripts, as well as updates to the user interface to incorporate these changes.</p>
+
+      <p><h3>What&#39;s new</h3></p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Change</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Data</td>
+            <td>Update to GENIE v19 dataset</td>
+            <td>
+              This release has updated to use
+              <a href="https://www.synapse.org/Synapse:syn72382128">Cohort v19.0-public</a> of the AACR Project GENIE dataset which contains 271,837 samples and 227,696 patients.
+            </td>
+          </tr>
+          <tr>
+            <td rowspan="3">Counting</td>
+            <td>Annotation in GRCh38</td>
+            <td>
+              Variants are now annotated in GRCh38 using latest gene symbols and against
+              RefSeq <a href="https://www.ensembl.org/info/docs/tools/vep/script/vep_other.html#pick">MANE transcripts as priority</a>.
+            </td>
+          </tr>
+          <tr>
+            <td>Variant type classification</td>
+            <td>
+              The variant Consequence determined by VEP is now used to determine variant type; frameshift (truncating) and nonsense variants are those with a consequence of "frameshift_variant" or "stop_gained" which have "Ter" (and not "ext") in the <code>HGVSp</code> notation. Inframe deletions are those with a consequence of "inframe_deletion".
+              Previously the <code>Variant_Classification</code> field was used; however, this is calculated by cBioPortal/MSKCC's internal processes and is not available following re-annotation in GRCh38.
+            </td>
+          </tr>
+          <tr>
+            <td>Variant position/range</td>
+            <td>
+              The position for frameshift (truncating) and nonsense variants and the range
+              for inframe deletions is now determined by the <code>Protein_position</code>
+              field, rather than the <code>HGVS</code> notation.
+            </td>
+          </tr>
+          <tr>
+            <td rowspan="2">Website</td>
+            <td>Column changes</td>
+            <td>
+              The <code>Variant_Classification</code> field for each variant has been removed.
+              The <code>Protein_position</code> field for each variant has been added.
+            </td>
+          </tr>
+          <tr>
+            <td>Documentation</td>
+            <td>
+              The "Information about generation of patient count data" page has been updated
+              to reflect the above changes.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+
+      <p><h5>Variants removed in this version</h5></p>
+      <ul>
+          <li>1118 variants which were not annotated against a gene (empty gene symbol) were removed.</li>
+          <li>3 variants with a mismatch against the GRCh37 reference when converting from MAF to VCF description were removed.</li>
+          <li>830 variants which failed to liftover from GRCh37 -&gt; GRCh38 were removed.</li>
+          <li>2 variants on contig 22_KI270928v1_alt were removed.</li>
+      </ul>
+
+
+      <h2 class="mt-4">1.0.0-beta - September 2025</h2>
+
+      <p><h3>Summary</h3>
+      Initial beta release of the NHS GENIE website, providing patient counts for variants in the AACR Project GENIE dataset. Searching can be performed by gene symbol, chromosomal position, and chromosomal region, with aggregation of counts across multiple variant types and cancer groupings.</p>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Change</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Data</td>
+            <td>Dataset</td>
+            <td>
+              This release uses the
+              <a href="https://www.synapse.org/Synapse:syn64501552">Cohort v17.0-public</a> dataset of the AACR Project GENIE dataset which contains 229,453 samples and 196,244 patients.
+            </td>
+          </tr>
+          <tr>
+            <td rowspan="4">Counting</td>
+            <td>Same nucleotide change counts</td>
+            <td>
+              Counts of unique patients grouped by GRCh38 chromosome, position, reference and alternate allele.
+            </td>
+          </tr>
+          <tr>
+            <td>Same amino acid change counts</td>
+            <td>
+              Counts of unique patients grouped by transcript and protein change (<code>HGVSp</code>).
+            </td>
+          </tr>
+          <tr>
+            <td>Downstream frameshift (truncating) and nonsense counts</td>
+            <td>
+              Counts of unique patients with truncating variants affecting the same or downstream position (extracted from the <code>HGVSc</code> notation) within a gene and transcript. These are classed as any variants with a <code>Variant_Classification</code> of "Frame_Shift_Del", "Frame_Shift_Ins" or "Nonsense_Mutation" which have "Ter" in the <code>HGVSp</code> notation.
+            </td>
+          </tr>
+          <tr>
+            <td>Inframe deletion counts</td>
+            <td>
+              Counts of unique patients with the same or nested inframe deletions (extracted from the <code>HGVSp</code> notation) within the same gene and transcript. Inframe deletions are determined by the "In_Frame_Del" value for <code>Variant_Classification</code>.
+            </td>
+          </tr>
+          <tr>
+            <td rowspan="1">Annotation</td>
+            <td>Annotations</td>
+            <td>
+              Counts use the annotations, including gene symbols and transcripts, which are supplied in the GENIE bulk download. Thirty-nine genes contain counts for multiple transcripts.
+            </td>
+          </tr>
+          <tr>
+            <td rowspan="1">Website</td>
+            <td>Initial beta release</td>
+            <td>
+              Search functionality included for gene symbols, chromosomal positions, and chromosomal regions, with patient counts available by cancer type and cancer grouping.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><h5>Variants removed in this version</h5></p>
+      <ul>
+          <li>732 variants with a gene symbol of "Unknown" were removed.</li>
+          <li>3 variants with a mismatch against the GRCh37 reference when converting from MAF to VCF description were removed.</li>
+          <li>684 variants which failed to liftover from GRCh37 -&gt; GRCh38 were removed.</li>
+          <li>2 variants on contig 22_KI270928v1_alt were removed.</li>
+      </ul>
+
+  </div>
+</div>
+{% endblock %}
