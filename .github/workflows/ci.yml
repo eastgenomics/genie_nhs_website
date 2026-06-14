@@ -44,7 +44,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install bandit pip-audit
+          pip install bandit==1.9.4 pip-audit==2.10.1
       - name: Run bandit (SAST) — fail on HIGH/CRITICAL findings
         run: bandit -r main/ -lll -f sarif -o bandit.sarif
       - name: Upload bandit SARIF to Security tab
