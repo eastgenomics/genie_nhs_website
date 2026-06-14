@@ -7,12 +7,16 @@ on:
 jobs:
   release-artefacts:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       SECRET_KEY: ci-insecure-secret-key-for-testing-only
       DEBUG: "true"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
         with:
           python-version: "3.12"
       - name: Install dependencies and release tools
@@ -29,7 +33,7 @@ jobs:
       - name: Generate SBOM in CycloneDX format (CAF A4.a)
         run: cyclonedx-py environment --output-format json --outfile sbom.json
       - name: Upload release artefacts (retained 90 days)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b  # v4.5.0
         with:
           name: release-artefacts-${{ github.sha }}
           path: |
