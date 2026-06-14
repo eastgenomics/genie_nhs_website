@@ -44,7 +44,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install bandit==1.9.4 pip-audit==2.10.1
-      - name: Run bandit (SAST) — fail on HIGH/CRITICAL findings
+      - name: Run bandit (SAST) — fail on HIGH severity findings
         run: bandit -r main/ -lll -f sarif -o bandit.sarif
       - name: Upload bandit SARIF to Security tab
         if: always()
@@ -52,4 +52,5 @@ jobs:
         with:
           sarif_file: bandit.sarif
       - name: Run pip-audit (CVE scan) — fail on any finding
+        if: always()
         run: pip-audit -r requirements.txt
