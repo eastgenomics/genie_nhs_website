@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release-artefacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies and release tools
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pip-audit pip-tools cyclonedx-bom
+      - name: Run tests
+        run: python manage.py test
+      - name: Run pip-audit (CVE scan — release gate)
+        run: pip-audit -r requirements.txt
+      - name: Generate hashed requirements (supply chain — CAF A4.a)
+        run: pip-compile requirements.txt --generate-hashes --output-file requirements-hashed.txt
+      - name: Generate SBOM in CycloneDX format (CAF A4.a)
+        run: cyclonedx-py environment --output-format json --outfile sbom.json
+      - name: Upload release artefacts (retained 90 days)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artefacts-${{ github.sha }}
+          path: |
+            requirements-hashed.txt
+            sbom.json
+          retention-days: 90

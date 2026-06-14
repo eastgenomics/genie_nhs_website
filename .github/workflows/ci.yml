@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run tests
+        run: python manage.py test
+
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies and security tools
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install bandit pip-audit
+      - name: Run bandit (SAST)
+        run: bandit -r main/ -ll -f sarif -o bandit.sarif || true
+      - name: Upload bandit SARIF to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit.sarif
+      - name: Run pip-audit (CVE scan) — fail on any finding
+        run: pip-audit -r requirements.txt
