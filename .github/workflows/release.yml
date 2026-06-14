@@ -7,6 +7,9 @@ on:
 jobs:
   release-artefacts:
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-insecure-secret-key-for-testing-only
+      DEBUG: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
