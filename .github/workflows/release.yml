@@ -31,7 +31,7 @@ jobs:
       - name: Generate hashed requirements (supply chain — CAF A4.a)
         run: pip-compile requirements.txt --generate-hashes --output-file requirements-hashed.txt
       - name: Generate SBOM in CycloneDX format (CAF A4.a)
-        run: cyclonedx-py environment --output-format json --outfile sbom.json
+        run: cyclonedx-py requirements requirements.txt --output-format JSON -o sbom.json
       - name: Upload release artefacts (retained 90 days)
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b  # v4.5.0
         with:
