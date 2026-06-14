@@ -8,7 +8,7 @@ jobs:
   release-artefacts:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     env:
       SECRET_KEY: ci-insecure-secret-key-for-testing-only
       DEBUG: "true"
@@ -40,3 +40,7 @@ jobs:
             requirements-hashed.txt
             sbom.json
           retention-days: 90
+      - name: Attach artefacts to GitHub Release (5-year retention — CAF A4.a)
+        run: gh release upload "${{ github.ref_name }}" requirements-hashed.txt sbom.json
+        env:
+          GH_TOKEN: ${{ github.token }}
