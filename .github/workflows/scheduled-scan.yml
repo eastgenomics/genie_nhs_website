@@ -24,6 +24,7 @@ jobs:
           pip install -r requirements.txt
           pip install pip-audit
       - name: Run pip-audit
+        id: pip_audit
         continue-on-error: true
         run: pip-audit -r requirements.txt
       - name: Run Trivy filesystem scan (Python deps, Dockerfile, Terraform IaC)
@@ -39,3 +40,8 @@ jobs:
         uses: github/codeql-action/upload-sarif@17a820bf2e43b47be2c72b39cc905417bc1ab6d0  # v3.28.6
         with:
           sarif_file: trivy.sarif
+      - name: Fail if pip-audit found vulnerabilities
+        if: always() && steps.pip_audit.outcome == 'failure'
+        run: |
+          echo "pip-audit detected vulnerabilities — see results above"
+          exit 1
