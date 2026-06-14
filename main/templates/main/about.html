@@ -4,9 +4,9 @@
 
 <div class="container-fluid px-5">
     <div class="row mt-3 p-4 mx-auto bg-white shadow card-1000">
-        <h2>GENIE {{ GENIE_VERSION }} - Generation of count data</h2>
+        <h2>GENIE - Generation of count data</h2>
         <hr>
-        <p>Count data are generated to assist with variant interpretation according to the 
+        <p>Count data are generated to assist with variant interpretation according to the
             <a href="https://www.acgs.uk.com/media/12831/svig-uk_guidelines_v10_-_post-acgs_ratification_final_submit01.pdf">
                 UK Somatic Variant Interpretation Guidelines (S-VIG)</a>.
         </p>
@@ -57,8 +57,6 @@
                     <li>
                         Annotations for Hugo_Symbol, Consequence, RefSeq, HGVSc, HGVSp, and Protein_position were
                         replaced with the annotations from VEP v115.2 in GRCh38 prior to counting.
-                        <strong>Note</strong>: the Variant_Classification field is no longer available as this is not
-                        annotated by VEP.
                     </li>
                 </ol>
             </li>
@@ -86,7 +84,7 @@
                     <td><strong>Same amino acid change</strong></td>
                     <td>All variants with <code>HGVSp</code> notation present.</td>
                     <td>
-                        Variants are grouped by <code>Hugo_Symbol</code>, <code>RefSeq</code> 
+                        Variants are grouped by <code>Hugo_Symbol</code>, <code>RefSeq</code>
                         and <code>HGVSp</code> and the number of unique patients are counted.
                     </td>
                 </tr>
@@ -110,7 +108,7 @@
                     </td>
                     <td>
                         For each variant, the deletion range is extracted from the <code>Protein_position</code>
-                         and the number of unique patients with an inframe deletion with the same <code>Hugo_Symbol</code>
+                        and the number of unique patients with an inframe deletion with the same <code>Hugo_Symbol</code>
                          and <code>RefSeq</code> which affects the same range or is nested within the range are counted.
                     </td>
                 </tr>
@@ -544,10 +542,10 @@
 
         <h4>Variants removed</h4>
         <ul>
-            <li>1118 variants which were not annotated against a gene (empty VEP symbol) were removed.</li>
-            <li>3 variants were removed due to a mismatch with the GRCh37 reference when converting from MAF to VCF description.</li>
-            <li>830 variants failed to liftover from GRCh37 -&gt; GRCh38 and were removed.</li>
-            <li>2 variants on contig 22_KI270928v1_alt were removed.</li>
+            <li>Variants which were not annotated against a gene (empty gene symbol) were removed.</li>
+            <li>Variants with a mismatch against the GRCh37 reference when converting from MAF to VCF description were removed.</li>
+            <li>Variants which failed to liftover from GRCh37 -&gt; GRCh38 were removed.</li>
+            <li>Variants on alt contigs were removed.</li>
         </ul>
     </div>
 </div>

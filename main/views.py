@@ -17,6 +17,9 @@ def about(request):
     """A page with information about generation of patient count data."""
     return render(request, 'main/about.html')
 
+def release_notes(request):
+    """A page with information about release notes for each version"""
+    return render(request, 'main/release_notes.html')
 
 def search_view(request):
     """Main website search that is available on all website pages.
