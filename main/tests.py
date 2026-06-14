@@ -17,6 +17,20 @@ class IndexViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
+class AboutViewTests(TestCase):
+    """About page test."""
+    def test_about_returns_200(self):
+        resp = self.client.get(r("about"))
+        self.assertEqual(resp.status_code, 200)
+
+
+class ReleaseNotesViewTests(TestCase):
+    """Release notes page test."""
+    def test_release_notes_returns_200(self):
+        resp = self.client.get(r("release_notes"))
+        self.assertEqual(resp.status_code, 200)
+
+
 class VariantsViewTests(TestCase):
     """Variants page test."""
     def test_variants_returns_200(self):
