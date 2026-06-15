@@ -41,6 +41,7 @@ jobs:
             sbom.json
           retention-days: 90
       - name: Attach artefacts to GitHub Release (5-year retention — CAF A4.a)
-        run: gh release upload --clobber "${{ github.ref_name }}" requirements-hashed.txt sbom.json
+        run: gh release upload --clobber "$RELEASE_TAG" requirements-hashed.txt sbom.json
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
