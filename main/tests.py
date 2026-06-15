@@ -49,7 +49,7 @@ class SearchViewTests(TestCase):
     def test_empty_search_value_does_not_500(self):
         """An empty search_value must not raise an unhandled server error."""
         resp = self.client.get(r("search") + "?search_value=")
-        self.assertNotEqual(resp.status_code, 500)
+        self.assertEqual(resp.status_code, 302)
 
 
 class AjaxVariantsTests(TestCase):
