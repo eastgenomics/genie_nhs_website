@@ -133,6 +133,7 @@ These resources must exist before Terraform can be initialised:
    GENIE_VERSION=v19
    GENIE_VCF=GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz
    GENIE_CANCER_TYPES_CSV=GENIE_v19_cancer_types.csv
+   GOOGLE_ANALYTICS_ID=<GA4-measurement-id>
    ```
 
    See `README.md` for the full list of supported environment variables.
