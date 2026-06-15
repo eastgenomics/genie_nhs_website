@@ -192,7 +192,7 @@ key_pair_name   = "nhs-genie"
 domain          = "genie.genomics-resources.uk"
 route53_zone_id = "Z09949371PEDMO2FEKH29"   # Hosted zone for var.domain
 s3_data_bucket  = "genie-website-data"      # S3 bucket with VCF/CSV
-alert_email     = "alerts@example.com"       # CloudWatch alarm recipient
+alert_email     = "your-team-inbox@nhs.net"         # CloudWatch alarm recipient
 ssh_cidr_blocks = ["203.0.113.0/24"]         # Restrict SSH to your network
 
 # UK geo-restriction (Nginx GeoIP2). Set restrict_to_uk = false to disable.
@@ -268,6 +268,7 @@ make tf-destroy ENV=prod
 To deploy the latest code to a running instance:
 
 ```bash
+ssh-add ~/.ssh/nhs-genie.pem   # ensure key is in agent first
 make deploy ENV=prod
 ```
 
