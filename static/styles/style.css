@@ -124,10 +124,15 @@ ol {
     width: 300px;
 }
 
-.beta-banner {
-  background-color: var(--nhs-aqua-green);
-  color: var(--nhs-white);
+.notification-banner {
+  background-color: var(--nhs-warm-yellow);
+  color: var(--nhs-black);
   font-size: 0.875rem;
+}
+
+.emphasise {
+    color: var(--nhs-blue);
+    font-weight: bold;
 }
 
 /* Tables */
