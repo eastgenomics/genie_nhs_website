@@ -113,7 +113,7 @@ acceptance-checklist: ## Print manual acceptance checklist with UAT URL
 	$(eval UAT_FQDN := $(call tf_output,uat,fqdn))
 	@if [ -z "$(UAT_FQDN)" ]; then echo "ERROR: could not resolve UAT FQDN"; exit 1; fi
 	@sed -e "s|__UAT_URL__|$(SCHEME)://$(UAT_FQDN)|g" \
-		-e "s|__PROD_URL__|$(if $(strip $(PROD_URL)),$(PROD_URL),https://beta.genomics-resources.uk)|g" \
+		-e "s|__PROD_URL__|$(if $(strip $(PROD_URL)),$(PROD_URL),https://genie.genomics-resources.uk)|g" \
 		scripts/acceptance_checklist.md
 
 # ── SSL ──────────────────────────────────────────────────────────────────────
