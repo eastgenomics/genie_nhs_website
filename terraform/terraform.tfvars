@@ -6,6 +6,7 @@ domain          = "genie.genomics-resources.uk"
 route53_zone_id = "Z09949371PEDMO2FEKH29"
 s3_data_bucket  = "genie-website-data"
 alert_email     = "cuh.bioinformatics.group@nhs.net"
+alert_slack_email = "g3p4g8o0i4h6w6s5@binfx.slack.com"
 ssh_cidr_blocks = ["145.40.188.80/32"]
 
 # UK geo-restriction (Nginx GeoIP2). Requires the MaxMind GeoLite2 licence key
