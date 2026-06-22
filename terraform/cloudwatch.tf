@@ -14,6 +14,13 @@ resource "aws_sns_topic_subscription" "email" {
   endpoint  = var.alert_email
 }
 
+resource "aws_sns_topic_subscription" "slack_email" {
+  count     = local.is_prod && var.alert_slack_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.genie_alerts[0].arn
+  protocol  = "email"
+  endpoint  = var.alert_slack_email
+}
+
 # --- CPU utilisation alarm (>80% for 5 minutes) ---
 
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {

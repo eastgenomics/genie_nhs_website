@@ -29,6 +29,12 @@ variable "alert_email" {
   type        = string
 }
 
+variable "alert_slack_email" {
+  description = "Optional Slack email integration address for CloudWatch alarm notifications"
+  type        = string
+  default     = ""
+}
+
 variable "ssh_cidr_blocks" {
   description = "CIDR blocks allowed to SSH (e.g. office/VPN range). No default — must be set explicitly."
   type        = list(string)
