@@ -270,8 +270,12 @@ To deploy the latest code to a running instance:
 
 ```bash
 ssh-add ~/.ssh/nhs-genie.pem   # ensure key is in agent first
-make deploy ENV=prod
+# if no agent is running: eval $(ssh-agent -s) && ssh-add ~/.ssh/nhs-genie.pem
+AWS_PROFILE=genie-website make deploy ENV=prod
 ```
+
+> **Note:** If Terraform has not been initialised on this machine, run
+> `AWS_PROFILE=genie-website make tf-init` first.
 
 This SSHes to the instance and runs:
 1. `git pull origin main`
