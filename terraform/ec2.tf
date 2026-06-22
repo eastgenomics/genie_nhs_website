@@ -73,11 +73,53 @@ resource "aws_vpc_security_group_ingress_rule" "https" {
   cidr_ipv4         = "0.0.0.0/0"
 }
 
-resource "aws_vpc_security_group_egress_rule" "all_outbound" {
+# --- Egress rules (least-privilege) ---
+# Replaces the previous catch-all rule (ip_protocol = "-1") to satisfy
+# Trivy AWS-0104. Only ports confirmed as necessary by user_data.sh are opened.
+
+resource "aws_vpc_security_group_egress_rule" "egress_https" {
   security_group_id = aws_security_group.genie.id
-  description       = "All outbound"
-  ip_protocol       = "-1"
+  description       = "HTTPS outbound (apt, Docker, AWS APIs, GitHub, MaxMind, PyPI)"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
   cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "egress_http" {
+  security_group_id = aws_security_group.genie.id
+  description       = "HTTP outbound (apt mirrors, Lets Encrypt ACME challenge)"
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "egress_dns" {
+  security_group_id = aws_security_group.genie.id
+  description       = "DNS resolution (UDP) to VPC resolver"
+  from_port         = 53
+  to_port           = 53
+  ip_protocol       = "udp"
+  cidr_ipv4         = "169.254.169.253/32"
+}
+
+resource "aws_vpc_security_group_egress_rule" "egress_dns_tcp" {
+  security_group_id = aws_security_group.genie.id
+  description       = "DNS resolution (TCP) to VPC resolver - large responses"
+  from_port         = 53
+  to_port           = 53
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "169.254.169.253/32"
+}
+
+resource "aws_vpc_security_group_egress_rule" "egress_ntp" {
+  security_group_id = aws_security_group.genie.id
+  description       = "NTP time sync (UDP) to AWS time sync service"
+  from_port         = 123
+  to_port           = 123
+  ip_protocol       = "udp"
+  cidr_ipv4         = "169.254.169.123/32"
 }
 
 # --- EC2 instance ---
