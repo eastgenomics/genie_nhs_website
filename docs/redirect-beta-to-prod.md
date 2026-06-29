@@ -110,7 +110,7 @@ Create `/var/www/html/moved.html` on the beta server:
 Replace the `proxy_pass` block in the `beta.genomics-resources.uk` server
 block with a directive to serve `moved.html` for all requests:
 
-**Current `location /` block** (as per `scripts/nginx-genie.conf`):
+**Current `location /` block** (same proxy pattern as `scripts/nginx-genie.conf`):
 ```nginx
 location / {
     proxy_pass http://127.0.0.1:8000;
