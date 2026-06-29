@@ -77,6 +77,7 @@ resource "aws_vpc_security_group_ingress_rule" "https" {
 # Replaces the previous catch-all rule (ip_protocol = "-1") to satisfy
 # Trivy AWS-0104. Only ports confirmed as necessary by user_data.sh are opened.
 
+#trivy:ignore:AVD-AWS-0104 -- destination cannot be restricted: external services (apt, Docker Hub, GitHub, MaxMind, PyPI, AWS APIs) use variable/CDN IPs
 resource "aws_vpc_security_group_egress_rule" "egress_https" {
   security_group_id = aws_security_group.genie.id
   description       = "HTTPS outbound (apt, Docker, AWS APIs, GitHub, MaxMind, PyPI)"
@@ -86,6 +87,7 @@ resource "aws_vpc_security_group_egress_rule" "egress_https" {
   cidr_ipv4         = "0.0.0.0/0"
 }
 
+#trivy:ignore:AVD-AWS-0104 -- destination cannot be restricted: apt mirrors and Let's Encrypt use variable/CDN IPs
 resource "aws_vpc_security_group_egress_rule" "egress_http" {
   security_group_id = aws_security_group.genie.id
   description       = "HTTP outbound (apt mirrors, Lets Encrypt ACME challenge)"
