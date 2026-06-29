@@ -110,14 +110,14 @@ Create `/var/www/html/moved.html` on the beta server:
 Replace the `proxy_pass` block in the `beta.genomics-resources.uk` server
 block with a directive to serve `moved.html` for all requests:
 
-**Current `location /` block:**
+**Current `location /` block** (same proxy pattern as `scripts/nginx-genie.conf`):
 ```nginx
 location / {
     proxy_pass http://127.0.0.1:8000;
-    proxy_redirect off;
-    proxy_connect_timeout 5s;
-    proxy_send_timeout 60s;
-    proxy_read_timeout 60s;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
 
@@ -128,9 +128,6 @@ location / {
     try_files /moved.html =404;
 }
 ```
-
-Also remove the `/static/` location block — it is no longer needed once the
-app is no longer being proxied.
 
 ### Step 3 — Test and reload Nginx
 
@@ -151,8 +148,8 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## Rollback
 
-To restore the original behaviour, revert the `location /` block and
-`location /static/` block to their previous state and reload Nginx:
+To restore the original behaviour, revert the `location /` block to its
+previous state (see Step 2 above for the full original block) and reload Nginx:
 
 ```bash
 sudo nginx -t && sudo systemctl reload nginx
