@@ -125,7 +125,7 @@ ol {
 }
 
 .notification-banner {
-  background-color: var(--nhs-warm-yellow);
+  background-color: var(--nhs-orange);
   color: var(--nhs-black);
   font-size: 0.875rem;
 }
