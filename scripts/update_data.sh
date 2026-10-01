@@ -5,19 +5,20 @@ set -euo pipefail
 # Usage: scripts/update_data.sh --host <ip> --vcf <s3-uri> --csv <s3-uri> --version <string>
 
 usage() {
-    echo "Usage: $0 --host <ip> --vcf <s3-uri> --csv <s3-uri> --version <string>"
+    echo "Usage: $0 --host <ip> --vcf <s3-uri> --csv <s3-uri> --version <string> [--test-url <https://fqdn>]"
     exit 1
 }
 
-HOST="" VCF="" CSV="" VERSION=""
+HOST="" VCF="" CSV="" VERSION="" TEST_URL=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --host)    HOST="$2";    shift 2 ;;
-        --vcf)     VCF="$2";     shift 2 ;;
-        --csv)     CSV="$2";     shift 2 ;;
-        --version) VERSION="$2"; shift 2 ;;
-        *)         usage ;;
+        --host)     HOST="$2";     shift 2 ;;
+        --vcf)      VCF="$2";      shift 2 ;;
+        --csv)      CSV="$2";      shift 2 ;;
+        --version)  VERSION="$2";  shift 2 ;;
+        --test-url) TEST_URL="$2"; shift 2 ;;
+        *)          usage ;;
     esac
 done
 
@@ -72,7 +73,28 @@ ssh "${SSH_USER}@${HOST}" bash <<EOF
   echo "Starting application..."
   docker compose up -d
 
+  echo "Verifying row counts..."
+  docker compose run --rm web python manage.py shell -c "
+from main.models import Variant, CancerType
+v = Variant.objects.count()
+c = CancerType.objects.count()
+assert v > 0, 'ERROR: No variants imported'
+assert c > 0, 'ERROR: No cancer types imported'
+print('Variants:', v)
+print('CancerTypes:', c)
+"
+
   echo "Data update complete (downtime ended)."
 EOF
+
+if [ -n "${TEST_URL}" ]; then
+    echo "Running acceptance tests against ${TEST_URL}..."
+    python3 "$(dirname "$0")/acceptance_test.py" \
+        --uat-url "${TEST_URL}" \
+        --mode known-values
+else
+    echo "Skipping acceptance tests (no --test-url supplied)."
+    echo "Run manually: make acceptance-test-known-values ENV=<env>"
+fi
 
 echo "Done. Run 'make verify-db' to check row counts."
