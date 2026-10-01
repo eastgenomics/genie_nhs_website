@@ -6,8 +6,8 @@ Runs known-value and parity tests against UAT (and optionally prod) instances.
 
 Known-value expectations are loaded from scripts/acceptance_expected_values.json,
 which must be updated from the signed-off Confluence release page before each
-data deployment. The current values are for GENIE v19:
-https://cuhbioinformatics.atlassian.net/wiki/spaces/DV/pages/4426629121/
+data deployment. The version and Confluence URL are recorded in the JSON file
+itself — see the `version` and `confluence_page` fields for the current release.
 
 To update for a new release:
   1. Obtain the signed-off Confluence page URL for the new release.
