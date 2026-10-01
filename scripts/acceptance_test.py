@@ -4,13 +4,16 @@ NHS GENIE Acceptance Test Suite
 
 Runs known-value and parity tests against UAT (and optionally prod) instances.
 
-Known-value expectations are derived from GENIE v19 acceptance testing:
-https://cuhbioinformatics.atlassian.net/wiki/spaces/DV/pages/4426629121/
+Known-value expectations are loaded from scripts/acceptance_expected_values.json,
+which must be updated from the signed-off Confluence release page before each
+data deployment. The version and Confluence URL are recorded in the JSON file
+itself — see the `version` and `confluence_page` fields for the current release.
 
-IMPORTANT: Expected values are for GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz.
-All coordinates are GRCh38. The worked examples below (SAMHD1 / TP63) are
-taken from the "All patient counts ..." and "Inframe deletion counts ..."
-tests on that page. If the data version changes, these values must be updated.
+To update for a new release:
+  1. Obtain the signed-off Confluence page URL for the new release.
+  2. Update scripts/acceptance_expected_values.json with the new expected
+     values, version, and confluence_page fields.
+  3. Commit the updated JSON alongside any other release changes.
 
 Usage:
     python scripts/acceptance_test.py --uat-url http://HOST:PORT [--prod-url http://HOST:PORT]
@@ -20,11 +23,26 @@ Usage:
 
 import argparse
 import json
+import pathlib
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
+
+
+EXPECTED_VALUES_PATH = pathlib.Path(__file__).parent / "acceptance_expected_values.json"
+
+
+def load_expected_values() -> dict:
+    """Load expected values from the JSON config file."""
+    if not EXPECTED_VALUES_PATH.exists():
+        raise FileNotFoundError(
+            f"Expected values file not found: {EXPECTED_VALUES_PATH}\n"
+            "Update scripts/acceptance_expected_values.json from the "
+            "signed-off Confluence release page before running tests."
+        )
+    return json.loads(EXPECTED_VALUES_PATH.read_text())
 
 
 def validate_base_url(url: str, arg_name: str) -> str:
@@ -159,15 +177,16 @@ def _check_pc(suite, base_url, label, variant_id, field, expected):
 
 
 def run_known_value_tests(suite: TestSuite, base_url: str):
-    """Tests against hardcoded expected values from v19 acceptance testing.
+    """Tests against expected values loaded from acceptance_expected_values.json.
 
-    Worked examples (GRCh38) from the GENIE v19 controlled-file test page:
-      - SAMHD1 20:36935111 G>A   (missense)       SameNuc/SameAA counts
-      - SAMHD1 20:36927220 G>A   (stop_gained)    downstream-truncating counts
-      - SAMHD1 20:36919495 ..del (inframe del)    nested inframe-deletion counts
-    Cohort denominators: All Cancers 208523, Haemonc 18695, Solid 182170.
+    The JSON file must be updated from the signed-off Confluence release page
+    before each data deployment. See module docstring for instructions.
     """
-    print(f"\n{BOLD}Known-value tests against: {base_url}{RESET}\n")
+    expected = load_expected_values()
+    version = expected.get("version", "unknown")
+    confluence = expected.get("confluence_page", "(not set)")
+    print(f"\n{BOLD}Known-value tests against: {base_url}{RESET}")
+    print(f"  Expected values: {version} ({confluence})\n")
 
     # KV-S: Smoke -- HTTP 200 on key pages
     for label, path in [
@@ -179,98 +198,46 @@ def run_known_value_tests(suite: TestSuite, base_url: str):
         status = fetch_status(base_url, path)
         suite.add(label, status == 200, f"Got HTTP {status}")
 
-    # KV-1: SAMHD1 20:36935111 G>A (missense, p.Arg143Cys) exists with the
-    # expected SameNucleotideChange aggregate counts on the table row.
-    print("  Testing SAMHD1 20:36935111 G>A (missense)...")
-    try:
-        row = _find_variant_row(base_url, "20:36935111", "Arg143Cys")
-    except RuntimeError as e:
-        row = None
-        suite.add("KV-1  SAMHD1 20:36935111 row present", False, str(e))
-    if row is not None:
-        suite.add(
-            "KV-1  SAMHD1 20:36935111 row (gene + nucleotide counts)",
-            row.get("gene") == "SAMHD1"
-            and row.get("all_cancers_count") == 2
-            and row.get("haemonc_cancers_count") == 2
-            and row.get("solid_cancers_count") == 0,
-            f"gene={row.get('gene')} all={row.get('all_cancers_count')} "
-            f"haem={row.get('haemonc_cancers_count')} "
-            f"solid={row.get('solid_cancers_count')}",
-        )
-        # KV-2: SameAminoAcidChange per cancer type for the same variant.
-        _check_pc(
-            suite, base_url,
-            "KV-2  SAMHD1 20:36935111 SameAminoAcidChange counts",
-            row.get("variant_id"), "same_amino_acid_change_pc",
-            {
-                "All Cancers": 2,
-                "Haemonc Cancers": 2,
-                "Mature B-Cell Neoplasms": 1,
-                "Mature T and NK Neoplasms": 1,
-            },
-        )
-        # KV-5: cohort denominators (cancer_n) carried on the PC rows.
-        # This variant is haemonc-only, so only cancer types with a non-zero
-        # count for it appear (no "Solid Cancers" row).
-        _check_pc(
-            suite, base_url,
-            "KV-5  Cohort denominators (cancer_n)",
-            row.get("variant_id"), "cancer_n",
-            {
-                "All Cancers": 208523,
-                "Haemonc Cancers": 18695,
-                "Mature B-Cell Neoplasms": 7653,
-            },
-        )
-    elif not any(r.name.startswith("KV-1") for r in suite.results):
-        suite.add("KV-1  SAMHD1 20:36935111 row present", False, "not found")
+    for variant_spec in expected.get("variants", []):
+        region = variant_spec["region"]
+        hgvsp_substr = variant_spec["hgvsp_substr"]
+        spec_id = variant_spec["id"]
+        print(f"  Testing {spec_id}...")
 
-    # KV-3: SAMHD1 20:36927220 G>A (stop_gained, p.Arg220Ter)
-    # SameOrDownstreamTruncatingVariantsPerAA counts.
-    print("  Testing SAMHD1 20:36927220 G>A (downstream truncating)...")
-    try:
-        row = _find_variant_row(base_url, "20:36927220", "Arg220Ter")
-    except RuntimeError as e:
-        row = None
-        suite.add("KV-3  SAMHD1 20:36927220 downstream-truncating", False,
-                  str(e))
-    if row is not None:
-        _check_pc(
-            suite, base_url,
-            "KV-3  SAMHD1 20:36927220 SameOrDownstreamTruncatingPerAA counts",
-            row.get("variant_id"),
-            "same_or_downstream_truncating_variants_per_aa_pc",
-            {
-                "All Cancers": 21,
-                "Haemonc Cancers": 20,
-                "Mature B-Cell Neoplasms": 15,
-                "Mature T and NK Neoplasms": 4,
-                "Histiocytosis": 1,
-                "UNKNOWN": 2,
-            },
-        )
+        try:
+            row = _find_variant_row(base_url, region, hgvsp_substr)
+        except RuntimeError as e:
+            suite.add(f"{spec_id} row present", False, str(e))
+            continue
 
-    # KV-4: SAMHD1 20:36919495 ACAT>A (inframe deletion, p.Met240del)
-    # NestedInframeDeletionsPerAA counts.
-    print("  Testing SAMHD1 20:36919495 (nested inframe deletion)...")
-    try:
-        row = _find_variant_row(base_url, "20:36919495", "Met240del")
-    except RuntimeError as e:
-        row = None
-        suite.add("KV-4  SAMHD1 20:36919495 nested inframe deletion", False,
-                  str(e))
-    if row is not None:
-        _check_pc(
-            suite, base_url,
-            "KV-4  SAMHD1 20:36919495 NestedInframeDeletionsPerAA counts",
-            row.get("variant_id"), "nested_inframe_deletions_per_aa_pc",
-            {
-                "All Cancers": 1,
-                "Haemonc Cancers": 1,
-                "Mature B-Cell Neoplasms": 1,
-            },
-        )
+        if row is None:
+            suite.add(f"{spec_id} row present", False, "not found")
+            continue
+
+        # Nucleotide counts on the table row (if specified)
+        nuc = variant_spec.get("nucleotide_counts")
+        if nuc:
+            actual = {
+                k: row.get(k) for k in
+                ("all_cancers_count", "haemonc_cancers_count", "solid_cancers_count")
+            }
+            mismatches = [
+                f"{k}: expected={v}, got={actual.get(k)}"
+                for k, v in nuc.items() if actual.get(k) != v
+            ]
+            suite.add(
+                f"{spec_id} nucleotide counts",
+                not mismatches,
+                "; ".join(mismatches),
+            )
+
+        # Per-cancer-type PC fields
+        for pc_field, pc_expected in variant_spec.get("pc_fields", {}).items():
+            _check_pc(
+                suite, base_url,
+                f"{spec_id} {pc_field}",
+                row.get("variant_id"), pc_field, pc_expected,
+            )
 
 
 # ── Parity tests ─────────────────────────────────────────────────────────────

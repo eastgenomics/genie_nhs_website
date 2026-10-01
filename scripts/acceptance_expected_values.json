@@ -1,0 +1,59 @@
+{
+  "_comment": "Expected values for NHS GENIE acceptance tests. Update this file from the signed-off Confluence release page before each data deployment. Pass the Confluence URL in the 'confluence_page' field for traceability.",
+  "version": "v20",
+  "confluence_page": "https://cuhbioinformatics.atlassian.net/wiki/spaces/DV/pages/4766105790/GENIE_v20_GRCh38_counts_v1.0.0.vcf.gz",
+  "variants": [
+    {
+      "id": "KV-1/2/5  SAMHD1 20:36935111 G>A (missense, Arg143Cys)",
+      "region": "20:36935111",
+      "hgvsp_substr": "Arg143Cys",
+      "nucleotide_counts": {
+        "all_cancers_count": 3,
+        "haemonc_cancers_count": 3,
+        "solid_cancers_count": 0
+      },
+      "pc_fields": {
+        "same_amino_acid_change_pc": {
+          "All Cancers": 3,
+          "Haemonc Cancers": 3,
+          "Mature B-Cell Neoplasms": 2,
+          "Mature T and NK Neoplasms": 1
+        },
+        "cancer_n": {
+          "All Cancers": 221639,
+          "Haemonc Cancers": 19665,
+          "Mature B-Cell Neoplasms": 8216
+        }
+      }
+    },
+    {
+      "id": "KV-3  SAMHD1 20:36927220 G>A (stop_gained, Arg220Ter)",
+      "region": "20:36927220",
+      "hgvsp_substr": "Arg220Ter",
+      "pc_fields": {
+        "same_or_downstream_truncating_variants_per_aa_pc": {
+          "All Cancers": 22,
+          "Haemonc Cancers": 20,
+          "Mature B-Cell Neoplasms": 15,
+          "Mature T and NK Neoplasms": 4,
+          "Histiocytosis": 1,
+          "Ovarian Cancer": 1,
+          "Solid Cancers": 1,
+          "UNKNOWN": 2
+        }
+      }
+    },
+    {
+      "id": "KV-4  SAMHD1 20:36919495 ACAT>A (inframe del, Met240del)",
+      "region": "20:36919495",
+      "hgvsp_substr": "Met240del",
+      "pc_fields": {
+        "nested_inframe_deletions_per_aa_pc": {
+          "All Cancers": 1,
+          "Haemonc Cancers": 1,
+          "Mature B-Cell Neoplasms": 1
+        }
+      }
+    }
+  ]
+}
