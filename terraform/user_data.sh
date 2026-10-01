@@ -132,6 +132,106 @@ python3 -m venv /opt/certbot/
 /opt/certbot/bin/pip install certbot certbot-nginx
 ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
 
+# A pip/venv certbot install does NOT create a renewal timer (only the snap and
+# Debian packages do), so install one explicitly. Without this, certificates
+# silently expire 90 days after issuance.
+cat > /etc/systemd/system/certbot-renew.service <<'CERTBOTSVC'
+[Unit]
+Description=Renew Let's Encrypt certificates
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/certbot renew --quiet --nginx
+CERTBOTSVC
+
+cat > /etc/systemd/system/certbot-renew.timer <<'CERTBOTTIMER'
+[Unit]
+Description=Run certbot renew twice daily
+
+[Timer]
+OnCalendar=*-*-* 03,15:00:00
+RandomizedDelaySec=3600
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+CERTBOTTIMER
+
+systemctl daemon-reload
+systemctl enable --now certbot-renew.timer
+
+# --- Certificate expiry metric ---
+# Publishes days-until-expiry to CloudWatch so a silent renewal failure is
+# caught. Deliberately measures the certificate *as served by Nginx* rather
+# than the PEM on disk, so it also catches "certbot renewed but Nginx was
+# never reloaded".
+cat > /usr/local/bin/check-cert-expiry.sh <<'CERTCHECK'
+#!/bin/bash
+set -uo pipefail
+
+FQDN="__FQDN__"
+REGION="__AWS_REGION__"
+
+# IMDSv2 is enforced on this instance, so a token is required.
+TOKEN=$(curl -fsS -m 5 -X PUT http://169.254.169.254/latest/api/token \
+  -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' 2>/dev/null || true)
+INSTANCE_ID=$(curl -fsS -m 5 -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo unknown)
+
+NOT_AFTER=$(echo | timeout 15 openssl s_client -connect 127.0.0.1:443 -servername "$FQDN" 2>/dev/null \
+  | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+
+if [ -z "$${NOT_AFTER:-}" ]; then
+  # No certificate could be read at all. Report 0 rather than publishing
+  # nothing, so the alarm goes to ALARM instead of INSUFFICIENT_DATA.
+  DAYS=0
+else
+  DAYS=$(( ( $(date -d "$NOT_AFTER" +%s) - $(date +%s) ) / 86400 ))
+  [ "$DAYS" -lt 0 ] && DAYS=0
+fi
+
+aws cloudwatch put-metric-data \
+  --region "$REGION" \
+  --namespace Genie \
+  --metric-name CertDaysToExpiry \
+  --unit Count \
+  --value "$DAYS" \
+  --dimensions InstanceId="$INSTANCE_ID"
+
+logger -t check-cert-expiry "CertDaysToExpiry=$DAYS (notAfter=$${NOT_AFTER:-unavailable})"
+CERTCHECK
+sed -i "s|__FQDN__|${fqdn}|g; s|__AWS_REGION__|${aws_region}|g" /usr/local/bin/check-cert-expiry.sh
+chmod +x /usr/local/bin/check-cert-expiry.sh
+
+cat > /etc/systemd/system/cert-expiry-metric.service <<'CERTMETRICSVC'
+[Unit]
+Description=Publish TLS certificate days-to-expiry to CloudWatch
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/check-cert-expiry.sh
+CERTMETRICSVC
+
+cat > /etc/systemd/system/cert-expiry-metric.timer <<'CERTMETRICTIMER'
+[Unit]
+Description=Publish TLS certificate expiry metric every 6 hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:30:00
+OnBootSec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+CERTMETRICTIMER
+
+systemctl daemon-reload
+systemctl enable --now cert-expiry-metric.timer
+
 # --- Install and configure CloudWatch agent ---
 wget -q https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb \
   -O /tmp/amazon-cloudwatch-agent.deb

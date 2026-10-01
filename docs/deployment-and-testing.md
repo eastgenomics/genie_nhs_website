@@ -544,7 +544,63 @@ After provisioning production infrastructure and waiting for DNS propagation (~1
 make ssl CERTBOT_EMAIL=your-email@example.com
 ```
 
-This runs certbot with the Nginx plugin on the prod instance. Certbot installs a systemd timer that handles automatic certificate renewal.
+This runs certbot with the Nginx plugin on the prod instance.
+
+### Automatic renewal
+
+Certbot is installed from pip into a venv at `/opt/certbot` (see
+`terraform/user_data.sh`). **A pip install does not create a renewal timer** —
+only the snap and Debian packages do. `user_data.sh` therefore installs a
+`certbot-renew.timer` / `certbot-renew.service` pair explicitly (twice daily,
+`certbot renew --quiet --nginx`).
+
+Instances provisioned before this was added have no timer and their certificates
+will expire silently 90 days after issuance. Check and fix with:
+
+```bash
+ssh ubuntu@<ip> 'systemctl list-timers certbot-renew.timer --no-pager'
+ssh ubuntu@<ip> 'sudo certbot certificates'   # look at Expiry Date
+```
+
+If the timer is missing, re-apply the block from `terraform/user_data.sh` on the
+running host (user_data only executes on first boot), then `sudo certbot renew`.
+Note that `certbot renew` sleeps for a random delay of up to ~8 minutes before
+doing anything — it has not hung. Add `--no-random-sleep-on-renew` to skip it.
+
+### Expiry monitoring
+
+A renewal timer that dies is silent for up to 90 days, so prod also has a
+CloudWatch alarm (`nhs-genie-prod-cert-expiry`) fed by a custom metric:
+
+| Piece | Where |
+|---|---|
+| `/usr/local/bin/check-cert-expiry.sh` | installed by `terraform/user_data.sh` |
+| `cert-expiry-metric.timer` | every 6 hours, plus 10 min after boot |
+| Metric | `Genie` / `CertDaysToExpiry`, dimension `InstanceId` |
+| Alarm | `< 21` days for 2 periods → SNS `nhs-genie-prod-alerts` |
+
+Two deliberate design choices:
+
+- The script measures the certificate **as served by Nginx** on `127.0.0.1:443`
+  (not the PEM on disk), so it also catches "certbot renewed but Nginx was never
+  reloaded". If no certificate can be read at all it publishes `0`.
+- The alarm sets `treat_missing_data = "breaching"`. If the publishing timer
+  itself stops, that *is* the silent failure being guarded against, so missing
+  data must alert rather than sit in `INSUFFICIENT_DATA`.
+
+Because the check runs on the instance and reports into CloudWatch, it is
+unaffected by TLS interception on whatever network you happen to be viewing the
+site from (see Troubleshooting).
+
+On a freshly provisioned prod instance the metric publishes `0` until `make ssl`
+has run, so provision and run `make ssl` in the same sitting to avoid a spurious
+alarm.
+
+Check it manually:
+
+```bash
+ssh ubuntu@<ip> 'sudo /usr/local/bin/check-cert-expiry.sh && journalctl -t check-cert-expiry -n 3'
+```
 
 Without an email (not recommended for production):
 
