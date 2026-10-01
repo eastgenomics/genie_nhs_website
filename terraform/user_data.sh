@@ -198,7 +198,7 @@ aws cloudwatch put-metric-data \
   --metric-name CertDaysToExpiry \
   --unit Count \
   --value "$DAYS" \
-  --dimensions InstanceId="$INSTANCE_ID"
+  --dimensions InstanceId="$INSTANCE_ID" || exit "$?"
 
 logger -t check-cert-expiry "CertDaysToExpiry=$DAYS (notAfter=$${NOT_AFTER:-unavailable})"
 CERTCHECK
