@@ -150,6 +150,7 @@ resource "aws_instance" "genie" {
     ssm_env_parameter     = "${var.ssm_env_parameter}/${local.env}/env"
     github_repo           = var.github_repo
     aws_region            = var.aws_region
+    fqdn                  = local.fqdn
     restrict_to_uk        = var.restrict_to_uk
     allowed_countries     = join(" ", var.allowed_countries)
     maxmind_ssm_parameter = var.maxmind_ssm_parameter
