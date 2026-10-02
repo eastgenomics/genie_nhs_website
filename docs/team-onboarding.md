@@ -31,6 +31,15 @@ internet.
 
 ## Step 2 — Get SSH access
 
+> **Known limitation — shared key.** All team members currently use the same
+> `nhs-genie.pem` private key, so individual access cannot be revoked without
+> rotating the key for everyone. Tailscale-only ingress limits *network*
+> reachability, but does not make this SSH credential unique per user.
+> Per-user key provisioning is tracked in
+> [#42](https://github.com/eastgenomics/genie_nhs_website/issues/42) — until
+> then, treat `nhs-genie.pem` with the same care as a production secret and
+> rotate it if anyone with access leaves the team.
+
 1. Get the `nhs-genie.pem` private key from whoever onboarded you (shared
    securely, not over chat/email)
 2. Save and lock down permissions:
@@ -83,7 +92,8 @@ S3 bucket only — no other AWS access.
    # SSO region: eu-west-2
    # Account: genie-website (804761969039)
    # Role: GENIEWebsiteDataUpdater
-   # CLI profile name: genie-data-updater   (or whatever you prefer)
+   # CLI profile name: genie-data-updater   (use this exact name — all commands
+   #   in this guide and in deployment-and-testing.md assume this profile name)
    ```
 3. Log in before each session (SSO tokens expire):
    ```bash
