@@ -35,9 +35,16 @@ variable "alert_slack_email" {
   default     = ""
 }
 
-variable "ssh_cidr_blocks" {
-  description = "CIDR blocks allowed to SSH (e.g. office/VPN range). No default — must be set explicitly."
-  type        = list(string)
+variable "tailscale_oauth_client_id_parameter" {
+  description = "SSM SecureString parameter path holding the Tailscale OAuth client ID, used to generate a fresh auth key at instance boot."
+  type        = string
+  default     = "/genie/tailscale/oauth_client_id"
+}
+
+variable "tailscale_oauth_client_secret_parameter" {
+  description = "SSM SecureString parameter path holding the Tailscale OAuth client secret, used to generate a fresh auth key at instance boot."
+  type        = string
+  default     = "/genie/tailscale/oauth_client_secret"
 }
 
 variable "github_repo" {

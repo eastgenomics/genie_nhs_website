@@ -50,6 +50,66 @@ unzip -q /tmp/awscliv2.zip -d /tmp
 /tmp/aws/install
 rm -rf /tmp/aws /tmp/awscliv2.zip
 
+# --- Install Tailscale and join team tailnet ---
+# SSH (port 22) is restricted to the Tailscale CGNAT range at the security
+# group level, so the instance is only reachable via Tailscale.
+# Uses OAuth client credentials (stored in SSM) to generate a short-lived
+# auth key at boot — no 90-day expiry concern with static keys.
+curl -fsSL https://tailscale.com/install.sh | sh
+
+TS_CLIENT_ID=$(aws ssm get-parameter \
+  --name "${tailscale_oauth_client_id_parameter}" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text \
+  --region "${aws_region}")
+
+TS_CLIENT_SECRET=$(aws ssm get-parameter \
+  --name "${tailscale_oauth_client_secret_parameter}" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text \
+  --region "${aws_region}")
+
+# Exchange OAuth credentials for a short-lived access token (OAuth 2.0 client
+# credentials flow), then create a 5-minute auth key. Credentials go via a 0600
+# curl config file so the client secret never appears in the process argument
+# list (CWE-214).
+_TS_CURL_CFG=$(mktemp)
+chmod 600 "$_TS_CURL_CFG"
+printf 'user = "%s:%s"\n' "$TS_CLIENT_ID" "$TS_CLIENT_SECRET" > "$_TS_CURL_CFG"
+
+ACCESS_TOKEN=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/oauth/token \
+  --config "$_TS_CURL_CFG" \
+  -d "grant_type=client_credentials" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+rm -f "$_TS_CURL_CFG"
+unset _TS_CURL_CFG TS_CLIENT_ID TS_CLIENT_SECRET
+
+# Write the Bearer token to a 0600 file so it does not appear in the process
+# argument list (CWE-214). Delete immediately after use.
+_TS_AUTH_HDR=$(mktemp)
+chmod 600 "$_TS_AUTH_HDR"
+printf 'Authorization: Bearer %s\n' "$ACCESS_TOKEN" > "$_TS_AUTH_HDR"
+unset ACCESS_TOKEN
+
+AUTH_KEY=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/tailnet/-/keys \
+  -H "@${_TS_AUTH_HDR}" \
+  -H "Content-Type: application/json" \
+  -d '{"capabilities":{"devices":{"create":{"tags":["tag:server"],"reusable":false,"ephemeral":false,"preauthorized":true}}},"expirySeconds":300}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
+
+rm -f "$_TS_AUTH_HDR"
+unset _TS_AUTH_HDR
+
+tailscale up \
+  --authkey "$AUTH_KEY" \
+  --hostname "nhs-genie-${environment}"
+
+unset AUTH_KEY
+systemctl enable tailscaled
+
 # --- Install and configure Nginx as reverse proxy ---
 apt-get install -y nginx
 
