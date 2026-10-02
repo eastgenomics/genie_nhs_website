@@ -70,9 +70,6 @@ ssh "${SSH_USER}@${HOST}" bash <<EOF
   echo "Running database import..."
   docker compose run --rm web python db_importer.py
 
-  echo "Starting application..."
-  docker compose up -d
-
   echo "Verifying row counts..."
   docker compose run --rm web python manage.py shell -c "
 from main.models import Variant, CancerType
@@ -83,6 +80,9 @@ assert c > 0, 'ERROR: No cancer types imported'
 print('Variants:', v)
 print('CancerTypes:', c)
 "
+
+  echo "Starting application..."
+  docker compose up -d
 
   echo "Data update complete (downtime ended)."
 EOF

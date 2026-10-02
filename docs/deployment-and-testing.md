@@ -323,8 +323,8 @@ This SSHes to the instance and runs:
 3. Updates `.env` with the new filenames and version
 4. Stops the running containers (**downtime starts**)
 5. Runs `db_importer.py` inside a fresh container to re-import the database
-6. Starts the containers (**downtime ends**)
-7. Asserts variant and cancer type row counts are non-zero
+6. Asserts variant and cancer type row counts are non-zero
+7. Starts the containers (**downtime ends**)
 8. Runs acceptance tests against `--test-url` if provided
 
 **Expected downtime:** ~3-10 minutes (the v20 import of ~1.18M variants takes ~3-4 minutes once the VCF is downloaded).
