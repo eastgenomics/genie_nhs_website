@@ -155,6 +155,20 @@ These resources must exist before Terraform can be initialised:
 
 5. **S3 bucket for GENIE data** - The VCF and cancer types CSV must be uploaded to an S3 bucket. The EC2 instance role is granted read access to this bucket.
 
+6. **Tailscale OAuth client credentials** - SSH access is restricted to the Tailscale
+   network. Instances join the team tailnet at boot using OAuth client credentials
+   stored in SSM (no expiry, unlike static auth keys).
+
+   In the [Tailscale admin console](https://login.tailscale.com/admin/settings/oauth):
+   - Create an OAuth client with **Auth Keys → Write** scope and tag `tag:server`
+   - Store the credentials in SSM:
+   ```bash
+   aws ssm put-parameter --name /genie/tailscale/oauth_client_id \
+     --type SecureString --value "<client-id>" --region eu-west-2
+   aws ssm put-parameter --name /genie/tailscale/oauth_client_secret \
+     --type SecureString --value "<client-secret>" --region eu-west-2
+   ```
+
 ### Local machine requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.5
@@ -162,24 +176,35 @@ These resources must exist before Terraform can be initialised:
 - SSH access to EC2 instances (key pair file)
 - Python 3.8+ (for running acceptance tests)
 - GNU Make
+- [Tailscale](https://tailscale.com/download) installed and joined to the team tailnet (required for SSH access — port 22 is restricted to the Tailscale CGNAT range)
 
 ### SSH configuration
 
-The Makefile connects via `ssh ubuntu@<ip>`. For this to work, configure your SSH client to use the correct key pair. Add to `~/.ssh/config`:
+SSH access requires **both** the `nhs-genie.pem` key and an active Tailscale connection to the team tailnet. Instances are not reachable on port 22 from the public internet.
+
+Add to `~/.ssh/config`:
 
 ```
-Host *.eu-west-2.compute.amazonaws.com
+Host nhs-genie-prod
+  HostName <prod-tailscale-ip>    # e.g. 100.90.7.4 — see tailscale status
+  User ubuntu
+  IdentityFile ~/.ssh/nhs-genie.pem
+
+Host nhs-genie-beta
+  HostName <beta-tailscale-ip>
+  User ubuntu
+  IdentityFile ~/.ssh/nhs-genie.pem
+
+Host nhs-genie-uat
+  HostName <uat-tailscale-ip>
   User ubuntu
   IdentityFile ~/.ssh/nhs-genie.pem
 ```
 
-Or for a specific IP:
-
-```
-Host nhs-genie
-  HostName <elastic-ip>
-  User ubuntu
-  IdentityFile ~/.ssh/nhs-genie.pem
+To find current Tailscale IPs:
+```bash
+tailscale status | grep nhs-genie
+# or: https://login.tailscale.com/admin/machines
 ```
 
 ### Terraform variables
@@ -194,14 +219,15 @@ domain          = "genie.genomics-resources.uk"
 route53_zone_id = "Z09949371PEDMO2FEKH29"   # Hosted zone for var.domain
 s3_data_bucket  = "genie-website-data"      # S3 bucket with VCF/CSV
 alert_email     = "your-team-inbox@nhs.net"         # CloudWatch alarm recipient
-ssh_cidr_blocks = ["203.0.113.0/24"]         # Restrict SSH to your network
 
 # UK geo-restriction (Nginx GeoIP2). Set restrict_to_uk = false to disable.
 restrict_to_uk    = true
 allowed_countries = ["GB", "IM", "JE", "GG"]
 ```
 
-**Important:** `ssh_cidr_blocks` has no default value and must be set explicitly. A `terraform plan` will fail without it.
+> **Note:** `ssh_cidr_blocks` no longer exists — SSH is restricted to the Tailscale
+> CGNAT range (`100.64.0.0/10`) by a hardcoded security group rule. See the
+> Tailscale setup prerequisites below.
 
 ---
 
@@ -233,7 +259,7 @@ make tf-apply ENV=prod
 
 This creates:
 - EC2 instance (t3.large, 30 GB encrypted EBS, IMDSv2 enforced)
-- Security group (SSH restricted to `ssh_cidr_blocks`, HTTP/HTTPS open)
+- Security group (SSH restricted to Tailscale CGNAT `100.64.0.0/10`, HTTP/HTTPS open)
 - Elastic IP (prod only)
 - IAM role with S3, SSM, and CloudWatch permissions
 - Route53 A record (`genie.genomics-resources.uk` for prod; `uat.genie.genomics-resources.uk` for uat)
