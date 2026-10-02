@@ -274,6 +274,13 @@ ssh-add ~/.ssh/nhs-genie.pem   # ensure key is in agent first
 AWS_PROFILE=genie-website make deploy ENV=prod
 ```
 
+> **Note:** `make deploy` resolves the instance IP via Terraform output and requires
+> AWS CLI + SSO credentials on the local machine. If AWS CLI is not available (e.g. on
+> pop-os), call the deploy script directly instead:
+> ```bash
+> bash scripts/deploy.sh <instance-ip>
+> ```
+
 > **Note:** If Terraform has not been initialised on this machine, run
 > `AWS_PROFILE=genie-website make tf-init` first.
 
@@ -292,17 +299,22 @@ This SSHes to the instance and runs:
 Before updating, ensure the new VCF and cancer types CSV are in the S3 data bucket:
 
 ```bash
-aws s3 cp GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz s3://genie-website-data/
-aws s3 cp GENIE_v19_cancer_types.csv s3://genie-website-data/
+aws s3 cp GENIE_<version>_GRCh38_counts_v1.0.0.vcf.gz s3://genie-website-data/
+aws s3 cp GENIE_<version>_cancer_types.csv s3://genie-website-data/
 ```
 
 ### Run the data update
 
+See also [Example session](#example-session) for the full end-to-end workflow including
+the Confluence sign-off step and acceptance test JSON update.
+
 ```bash
-make update-data ENV=prod \
-  VCF=s3://genie-website-data/GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz \
-  CSV=s3://genie-website-data/GENIE_v19_cancer_types.csv \
-  VER=v19
+bash scripts/update_data.sh \
+  --host <instance-ip> \
+  --vcf  s3://genie-website-data/GENIE_<version>_GRCh38_counts_v1.0.0.vcf.gz \
+  --csv  s3://genie-website-data/GENIE_<version>_cancer_types.csv \
+  --version <version> \
+  --test-url https://<fqdn>
 ```
 
 This SSHes to the instance and runs:
@@ -311,9 +323,11 @@ This SSHes to the instance and runs:
 3. Updates `.env` with the new filenames and version
 4. Stops the running containers (**downtime starts**)
 5. Runs `db_importer.py` inside a fresh container to re-import the database
-6. Starts the containers (**downtime ends**)
+6. Asserts variant and cancer type row counts are non-zero
+7. Starts the containers (**downtime ends**)
+8. Runs acceptance tests against `--test-url` if provided
 
-**Expected downtime:** ~3-10 minutes (the v19 import of ~1.27M variants takes ~3-4 minutes once the VCF is downloaded).
+**Expected downtime:** ~3-10 minutes (the v20 import of ~1.18M variants takes ~3-4 minutes once the VCF is downloaded).
 
 **If the import fails or is killed:** The database will be empty (tables are truncated before re-import). See [Import killed / empty database](#import-killed--empty-database-exit-137) in Troubleshooting — on the t3.large instance the import can be OOM-killed if it runs alongside the live web workers. Do not leave the application running with an incomplete import.
 
@@ -500,31 +514,34 @@ The recommended workflow for deploying a new GENIE data release uses a UAT-first
 ### Example session
 
 ```bash
+# 0. Before starting: obtain the S3 URIs and the signed-off Confluence
+#    release page URL. Update scripts/acceptance_expected_values.json with
+#    the new expected values (cohort denominators etc.) from that page and
+#    commit the change.
+
 # 1. Spin up UAT
 make uat-up
 
-# 2. Load the new data (app is not functional until this completes)
-make update-data ENV=uat \
-  VCF=s3://genie-website-data/GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz \
-  CSV=s3://genie-website-data/GENIE_v19_cancer_types.csv \
-  VER=v19
+# 2. Load the new data — --test-url runs acceptance tests automatically
+#    once the import completes (requires the JSON to be up to date).
+#    Note: call the script directly if AWS CLI is not available locally.
+bash scripts/update_data.sh \
+  --host <uat-ip> \
+  --vcf  s3://genie-website-data/GENIE_v20_GRCh38_counts_v1.0.0.vcf.gz \
+  --csv  s3://genie-website-data/GENIE_v20_cancer_types.csv \
+  --version v20 \
+  --test-url https://uat.genie.genomics-resources.uk
 
-# 3. Verify database
-make verify-db ENV=uat
-
-# 4. Run automated tests against the UAT site URL
-#    (parity only if UAT and prod share the same VCF version)
-python3 scripts/acceptance_test.py \
-  --uat-url https://uat.genie.genomics-resources.uk --mode known-values
-
-# 5. Manual testing
+# 3. Manual testing
 make acceptance-checklist
 
-# 6. Promote to production
-make update-data ENV=prod \
-  VCF=s3://genie-website-data/GENIE_v19_GRCh38_counts_v1.0.0.vcf.gz \
-  CSV=s3://genie-website-data/GENIE_v19_cancer_types.csv \
-  VER=v19
+# 4. Promote to production
+bash scripts/update_data.sh \
+  --host <prod-ip> \
+  --vcf  s3://genie-website-data/GENIE_v20_GRCh38_counts_v1.0.0.vcf.gz \
+  --csv  s3://genie-website-data/GENIE_v20_cancer_types.csv \
+  --version v20 \
+  --test-url https://genie.genomics-resources.uk
 
 # 7. Verify production
 python3 scripts/acceptance_test.py \
