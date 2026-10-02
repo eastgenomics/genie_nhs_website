@@ -178,6 +178,17 @@ resource "aws_instance" "genie" {
   tags = { Name = local.name }
 
   lifecycle {
+    # ami:       prevent replacement when a newer AMI is released mid-deployment.
+    # user_data: prevent unintended replacement on minor script edits.
+    #
+    # IMPORTANT — bootstrap constraint:
+    # Because user_data changes are ignored, an existing instance will NOT
+    # automatically receive Tailscale when this change is first applied.
+    # Before narrowing the SSH security-group rule to 100.64.0.0/10, run the
+    # install-timers bootstrap script manually on each existing instance, or
+    # taint the resource (`terraform taint aws_instance.genie["<env>"]`) so it
+    # is replaced on the next apply.  See docs/deployment-and-testing.md for
+    # the step-by-step procedure.
     ignore_changes = [ami, user_data]
   }
 }

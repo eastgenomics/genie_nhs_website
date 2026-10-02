@@ -73,11 +73,20 @@ TS_CLIENT_SECRET=$(aws ssm get-parameter \
 
 # Generate a short-lived auth key (5 min TTL is sufficient to join the tailnet).
 # Devices are pre-authorised and tagged tag:server.
+# Write credentials to a 0600 curl config file so the OAuth secret does not
+# appear in the process argument list (CWE-214). Delete immediately after use.
+_TS_CURL_CFG=$(mktemp)
+chmod 600 "$_TS_CURL_CFG"
+printf 'user = "%s:%s"\n' "$TS_CLIENT_ID" "$TS_CLIENT_SECRET" > "$_TS_CURL_CFG"
+
 AUTH_KEY=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/tailnet/-/keys \
-  -u "$TS_CLIENT_ID:$TS_CLIENT_SECRET" \
+  --config "$_TS_CURL_CFG" \
   -H "Content-Type: application/json" \
   -d '{"capabilities":{"devices":{"create":{"tags":["tag:server"],"reusable":false,"ephemeral":false,"preauthorized":true}}},"expirySeconds":300}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
+
+rm -f "$_TS_CURL_CFG"
+unset _TS_CURL_CFG
 
 tailscale up \
   --authkey "$AUTH_KEY" \

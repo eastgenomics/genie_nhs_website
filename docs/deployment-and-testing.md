@@ -244,11 +244,31 @@ The EC2 user data script automatically installs Docker, Nginx (with the GeoIP2 U
 
 **After the first `terraform apply`:** Check your email and click the SNS subscription confirmation link to enable alarm notifications.
 
-To discover the instance IP after provisioning:
+To discover the instance's Tailscale IP after provisioning:
 
 ```bash
-cd terraform && TF_WORKSPACE=prod terraform output public_ip
+# Requires the Tailscale CLI (tailscale status) and an active tailnet session
+tailscale status | grep nhs-genie-prod
+# Alternatively: https://login.tailscale.com/admin/machines
 ```
+
+> **Note:** SSH access is restricted to the Tailscale CGNAT range (`100.64.0.0/10`).
+> Use the Tailscale IP (a `100.x.x.x` address) for all SSH and deployment operations
+> — the EC2 public IP is unreachable on port 22.
+
+> **Warning — bootstrapping existing instances before applying the SSH restriction:**
+> The EC2 `lifecycle.ignore_changes` block suppresses `user_data` replacements, so
+> an existing instance will **not** automatically receive Tailscale when this Terraform
+> change is applied. To avoid locking yourself out:
+> 1. SSH into the instance while port 22 is still open.
+> 2. Run `bash scripts/install-timers.sh` (or manually run the Tailscale section of
+>    `terraform/user_data.sh`) to install and join Tailscale.
+> 3. Verify `tailscale status` shows the instance on the tailnet.
+> 4. Then run `make tf-apply ENV=<env>` to apply the new security-group rule.
+>
+> Alternatively, taint the instance first
+> (`terraform taint 'aws_instance.genie["<env>"]'`) so it is replaced cleanly on
+> the next apply.
 
 ### Review planned changes
 
@@ -278,7 +298,7 @@ AWS_PROFILE=genie-website make deploy ENV=prod
 > AWS CLI + SSO credentials on the local machine. If AWS CLI is not available (e.g. on
 > pop-os), call the deploy script directly instead:
 > ```bash
-> bash scripts/deploy.sh <instance-ip>
+> bash scripts/deploy.sh <prod-tailscale-ip>
 > ```
 
 > **Note:** If Terraform has not been initialised on this machine, run
@@ -519,7 +539,7 @@ make uat-up
 #    once the import completes (requires the JSON to be up to date).
 #    Note: call the script directly if AWS CLI is not available locally.
 bash scripts/update_data.sh \
-  --host <uat-ip> \
+  --host <uat-tailscale-ip> \
   --vcf  s3://genie-website-data/GENIE_v20_GRCh38_counts_v1.0.0.vcf.gz \
   --csv  s3://genie-website-data/GENIE_v20_cancer_types.csv \
   --version v20 \
@@ -530,7 +550,7 @@ make acceptance-checklist
 
 # 4. Promote to production
 bash scripts/update_data.sh \
-  --host <prod-ip> \
+  --host <prod-tailscale-ip> \
   --vcf  s3://genie-website-data/GENIE_v20_GRCh38_counts_v1.0.0.vcf.gz \
   --csv  s3://genie-website-data/GENIE_v20_cancer_types.csv \
   --version v20 \
