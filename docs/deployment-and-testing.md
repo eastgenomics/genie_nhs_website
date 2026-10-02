@@ -343,11 +343,14 @@ This SSHes to the instance and runs:
 
 ### Upload data to S3
 
-Before updating, ensure the new VCF and cancer types CSV are in the S3 data bucket:
+Requires AWS SSO access via the `GENIEWebsiteDataUpdater` permission set (see
+[Team Onboarding](team-onboarding.md) if you don't have this yet). Before
+updating, ensure the new VCF and cancer types CSV are in the S3 data bucket:
 
 ```bash
-aws s3 cp GENIE_<version>_GRCh38_counts_v1.0.0.vcf.gz s3://genie-website-data/
-aws s3 cp GENIE_<version>_cancer_types.csv s3://genie-website-data/
+aws sso login --profile <your-sso-profile>
+AWS_PROFILE=<your-sso-profile> aws s3 cp GENIE_<version>_GRCh38_counts_v1.0.0.vcf.gz s3://genie-website-data/
+AWS_PROFILE=<your-sso-profile> aws s3 cp GENIE_<version>_cancer_types.csv s3://genie-website-data/
 ```
 
 ### Run the data update
