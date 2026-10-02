@@ -52,23 +52,38 @@ rm -rf /tmp/aws /tmp/awscliv2.zip
 
 # --- Install Tailscale and join team tailnet ---
 # SSH (port 22) is restricted to the Tailscale CGNAT range at the security
-# group level, so the instance is only reachable via Tailscale. The auth key
-# is a reusable pre-approved key stored in SSM; it must be rotated before it
-# expires (max 90 days on the free plan).
+# group level, so the instance is only reachable via Tailscale.
+# Uses OAuth client credentials (stored in SSM) to generate a short-lived
+# auth key at boot — no 90-day expiry concern with static keys.
 curl -fsSL https://tailscale.com/install.sh | sh
 
-TAILSCALE_AUTH_KEY=$(aws ssm get-parameter \
-  --name "${tailscale_auth_key_parameter}" \
+TS_CLIENT_ID=$(aws ssm get-parameter \
+  --name "${tailscale_oauth_client_id_parameter}" \
   --with-decryption \
   --query "Parameter.Value" \
   --output text \
   --region "${aws_region}")
 
+TS_CLIENT_SECRET=$(aws ssm get-parameter \
+  --name "${tailscale_oauth_client_secret_parameter}" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text \
+  --region "${aws_region}")
+
+# Generate a short-lived auth key (5 min TTL is sufficient to join the tailnet).
+# Devices are pre-authorised and tagged tag:server.
+AUTH_KEY=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/tailnet/-/keys \
+  -u "$TS_CLIENT_ID:$TS_CLIENT_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"capabilities":{"devices":{"create":{"tags":["tag:server"],"reusable":false,"ephemeral":false,"preauthorized":true}}},"expirySeconds":300}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
+
 tailscale up \
-  --authkey "$TAILSCALE_AUTH_KEY" \
+  --authkey "$AUTH_KEY" \
   --hostname "nhs-genie-${environment}"
 
-unset TAILSCALE_AUTH_KEY
+unset AUTH_KEY TS_CLIENT_ID TS_CLIENT_SECRET
 systemctl enable tailscaled
 
 # --- Install and configure Nginx as reverse proxy ---

@@ -163,15 +163,16 @@ resource "aws_instance" "genie" {
   }
 
   user_data = templatefile("${path.module}/user_data.sh", {
-    environment                  = local.env
-    ssm_env_parameter            = "${var.ssm_env_parameter}/${local.env}/env"
-    github_repo                  = var.github_repo
-    aws_region                   = var.aws_region
-    fqdn                         = local.fqdn
-    restrict_to_uk               = var.restrict_to_uk
-    allowed_countries            = join(" ", var.allowed_countries)
-    maxmind_ssm_parameter        = var.maxmind_ssm_parameter
-    tailscale_auth_key_parameter = var.tailscale_auth_key_parameter
+    environment                          = local.env
+    ssm_env_parameter                    = "${var.ssm_env_parameter}/${local.env}/env"
+    github_repo                          = var.github_repo
+    aws_region                           = var.aws_region
+    fqdn                                 = local.fqdn
+    restrict_to_uk                       = var.restrict_to_uk
+    allowed_countries                    = join(" ", var.allowed_countries)
+    maxmind_ssm_parameter                = var.maxmind_ssm_parameter
+    tailscale_oauth_client_id_parameter  = var.tailscale_oauth_client_id_parameter
+    tailscale_oauth_client_secret_parameter = var.tailscale_oauth_client_secret_parameter
   })
 
   tags = { Name = local.name }

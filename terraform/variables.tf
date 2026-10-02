@@ -35,10 +35,16 @@ variable "alert_slack_email" {
   default     = ""
 }
 
-variable "tailscale_auth_key_parameter" {
-  description = "SSM SecureString parameter path holding the Tailscale auth key used to join the instance to the team's tailnet on first boot."
+variable "tailscale_oauth_client_id_parameter" {
+  description = "SSM SecureString parameter path holding the Tailscale OAuth client ID, used to generate a fresh auth key at instance boot."
   type        = string
-  default     = "/genie/tailscale/auth_key"
+  default     = "/genie/tailscale/oauth_client_id"
+}
+
+variable "tailscale_oauth_client_secret_parameter" {
+  description = "SSM SecureString parameter path holding the Tailscale OAuth client secret, used to generate a fresh auth key at instance boot."
+  type        = string
+  default     = "/genie/tailscale/oauth_client_secret"
 }
 
 variable "github_repo" {

@@ -10,10 +10,11 @@ alert_email     = "cuh.bioinformatics.group@nhs.net"
 #   terraform apply -var="alert_slack_email=<slack-channel-email>"
 # See variables.tf: defaults to "" (subscription skipped) if not supplied.
 # SSH is restricted to the Tailscale CGNAT range (100.64.0.0/10) at the
-# security group level. Store a reusable pre-approved auth key in SSM:
-#   aws ssm put-parameter --name /genie/tailscale/auth_key \
-#     --value tskey-auth-xxxxx --type SecureString --region eu-west-2
-# The key must be rotated before expiry (max 90 days on free plan).
+# security group level. Tailscale joins the tailnet at boot using OAuth
+# client credentials stored in SSM:
+#   /genie/tailscale/oauth_client_id     (SecureString)
+#   /genie/tailscale/oauth_client_secret (SecureString)
+# OAuth credentials do not expire, so no rotation is needed.
 
 # UK geo-restriction (Nginx GeoIP2). Requires the MaxMind GeoLite2 licence key
 # to be stored in SSM at maxmind_ssm_parameter (default /genie/maxmind/license_key).
