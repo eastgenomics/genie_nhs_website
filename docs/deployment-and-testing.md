@@ -287,8 +287,9 @@ tailscale status | grep nhs-genie-prod
 > an existing instance will **not** automatically receive Tailscale when this Terraform
 > change is applied. To avoid locking yourself out:
 > 1. SSH into the instance while port 22 is still open.
-> 2. Run `bash scripts/install-timers.sh` (or manually run the Tailscale section of
->    `terraform/user_data.sh`) to install and join Tailscale.
+> 2. Manually run the Tailscale section of `terraform/user_data.sh` (the block
+>    between `# --- Install Tailscale` and `systemctl enable tailscaled`) to install
+>    and join Tailscale.
 > 3. Verify `tailscale status` shows the instance on the tailnet.
 > 4. Then run `make tf-apply ENV=<env>` to apply the new security-group rule.
 >

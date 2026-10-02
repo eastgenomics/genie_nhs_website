@@ -71,28 +71,35 @@ TS_CLIENT_SECRET=$(aws ssm get-parameter \
   --output text \
   --region "${aws_region}")
 
-# Generate a short-lived auth key (5 min TTL is sufficient to join the tailnet).
-# Devices are pre-authorised and tagged tag:server.
-# Write credentials to a 0600 curl config file so the OAuth secret does not
-# appear in the process argument list (CWE-214). Delete immediately after use.
+# Exchange OAuth credentials for a short-lived access token (OAuth 2.0 client
+# credentials flow), then create a 5-minute auth key. Credentials go via a 0600
+# curl config file so the client secret never appears in the process argument
+# list (CWE-214).
 _TS_CURL_CFG=$(mktemp)
 chmod 600 "$_TS_CURL_CFG"
 printf 'user = "%s:%s"\n' "$TS_CLIENT_ID" "$TS_CLIENT_SECRET" > "$_TS_CURL_CFG"
 
-AUTH_KEY=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/tailnet/-/keys \
+ACCESS_TOKEN=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/oauth/token \
   --config "$_TS_CURL_CFG" \
+  -d "grant_type=client_credentials" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+rm -f "$_TS_CURL_CFG"
+unset _TS_CURL_CFG TS_CLIENT_ID TS_CLIENT_SECRET
+
+AUTH_KEY=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/tailnet/-/keys \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"capabilities":{"devices":{"create":{"tags":["tag:server"],"reusable":false,"ephemeral":false,"preauthorized":true}}},"expirySeconds":300}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
 
-rm -f "$_TS_CURL_CFG"
-unset _TS_CURL_CFG
+unset ACCESS_TOKEN
 
 tailscale up \
   --authkey "$AUTH_KEY" \
   --hostname "nhs-genie-${environment}"
 
-unset AUTH_KEY TS_CLIENT_ID TS_CLIENT_SECRET
+unset AUTH_KEY
 systemctl enable tailscaled
 
 # --- Install and configure Nginx as reverse proxy ---

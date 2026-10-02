@@ -185,7 +185,7 @@ resource "aws_instance" "genie" {
     # Because user_data changes are ignored, an existing instance will NOT
     # automatically receive Tailscale when this change is first applied.
     # Before narrowing the SSH security-group rule to 100.64.0.0/10, run the
-    # install-timers bootstrap script manually on each existing instance, or
+    # Tailscale section of user_data.sh manually on each existing instance, or
     # taint the resource (`terraform taint aws_instance.genie["<env>"]`) so it
     # is replaced on the next apply.  See docs/deployment-and-testing.md for
     # the step-by-step procedure.
