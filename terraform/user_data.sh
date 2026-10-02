@@ -87,13 +87,21 @@ ACCESS_TOKEN=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/oauth/token \
 rm -f "$_TS_CURL_CFG"
 unset _TS_CURL_CFG TS_CLIENT_ID TS_CLIENT_SECRET
 
+# Write the Bearer token to a 0600 file so it does not appear in the process
+# argument list (CWE-214). Delete immediately after use.
+_TS_AUTH_HDR=$(mktemp)
+chmod 600 "$_TS_AUTH_HDR"
+printf 'Authorization: Bearer %s\n' "$ACCESS_TOKEN" > "$_TS_AUTH_HDR"
+unset ACCESS_TOKEN
+
 AUTH_KEY=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/tailnet/-/keys \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "@${_TS_AUTH_HDR}" \
   -H "Content-Type: application/json" \
   -d '{"capabilities":{"devices":{"create":{"tags":["tag:server"],"reusable":false,"ephemeral":false,"preauthorized":true}}},"expirySeconds":300}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
 
-unset ACCESS_TOKEN
+rm -f "$_TS_AUTH_HDR"
+unset _TS_AUTH_HDR
 
 tailscale up \
   --authkey "$AUTH_KEY" \
