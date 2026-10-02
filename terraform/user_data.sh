@@ -50,6 +50,27 @@ unzip -q /tmp/awscliv2.zip -d /tmp
 /tmp/aws/install
 rm -rf /tmp/aws /tmp/awscliv2.zip
 
+# --- Install Tailscale and join team tailnet ---
+# SSH (port 22) is restricted to the Tailscale CGNAT range at the security
+# group level, so the instance is only reachable via Tailscale. The auth key
+# is a reusable pre-approved key stored in SSM; it must be rotated before it
+# expires (max 90 days on the free plan).
+curl -fsSL https://tailscale.com/install.sh | sh
+
+TAILSCALE_AUTH_KEY=$(aws ssm get-parameter \
+  --name "${tailscale_auth_key_parameter}" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text \
+  --region "${aws_region}")
+
+tailscale up \
+  --authkey "$TAILSCALE_AUTH_KEY" \
+  --hostname "nhs-genie-${environment}"
+
+unset TAILSCALE_AUTH_KEY
+systemctl enable tailscaled
+
 # --- Install and configure Nginx as reverse proxy ---
 apt-get install -y nginx
 

@@ -36,23 +36,30 @@ resource "aws_security_group" "genie" {
   tags = { Name = "${local.name}-sg" }
 }
 
+# --- SSH access (Tailscale network only) ---
+# Port 22 is restricted to the Tailscale CGNAT range. Only devices on the
+# team's tailnet can initiate SSH connections.
 resource "aws_vpc_security_group_ingress_rule" "ssh" {
   security_group_id = aws_security_group.genie.id
-  description       = "SSH"
+  description       = "SSH from Tailscale network (CGNAT range 100.64.0.0/10)"
   from_port         = 22
   to_port           = 22
   ip_protocol       = "tcp"
-  cidr_ipv4         = var.ssh_cidr_blocks[0]
+  cidr_ipv4         = "100.64.0.0/10"
 }
 
-resource "aws_vpc_security_group_ingress_rule" "ssh_extra" {
-  count             = length(var.ssh_cidr_blocks) > 1 ? length(var.ssh_cidr_blocks) - 1 : 0
+# --- Tailscale WireGuard direct connections ---
+# Tailscale uses UDP 41641 for direct peer-to-peer WireGuard paths.
+# Without this, connections relay via Tailscale DERP servers (TCP 443,
+# which is already open) — still functional but with higher latency.
+#trivy:ignore:AVD-AWS-0104 -- destination cannot be restricted: Tailscale peers and STUN servers use variable IPs
+resource "aws_vpc_security_group_ingress_rule" "tailscale_wireguard" {
   security_group_id = aws_security_group.genie.id
-  description       = "SSH additional CIDR"
-  from_port         = 22
-  to_port           = 22
-  ip_protocol       = "tcp"
-  cidr_ipv4         = var.ssh_cidr_blocks[count.index + 1]
+  description       = "Tailscale WireGuard UDP for direct peer connections"
+  from_port         = 41641
+  to_port           = 41641
+  ip_protocol       = "udp"
+  cidr_ipv4         = "0.0.0.0/0"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "http" {
@@ -76,6 +83,16 @@ resource "aws_vpc_security_group_ingress_rule" "https" {
 # --- Egress rules (least-privilege) ---
 # Replaces the previous catch-all rule (ip_protocol = "-1") to satisfy
 # Trivy AWS-0104. Only ports confirmed as necessary by user_data.sh are opened.
+
+#trivy:ignore:AVD-AWS-0104 -- destination cannot be restricted: Tailscale peers and STUN servers use variable IPs
+resource "aws_vpc_security_group_egress_rule" "egress_tailscale" {
+  security_group_id = aws_security_group.genie.id
+  description       = "Tailscale WireGuard UDP outbound for direct peer connections"
+  from_port         = 41641
+  to_port           = 41641
+  ip_protocol       = "udp"
+  cidr_ipv4         = "0.0.0.0/0"
+}
 
 #trivy:ignore:AVD-AWS-0104 -- destination cannot be restricted: external services (apt, Docker Hub, GitHub, MaxMind, PyPI, AWS APIs) use variable/CDN IPs
 resource "aws_vpc_security_group_egress_rule" "egress_https" {
@@ -146,14 +163,15 @@ resource "aws_instance" "genie" {
   }
 
   user_data = templatefile("${path.module}/user_data.sh", {
-    environment           = local.env
-    ssm_env_parameter     = "${var.ssm_env_parameter}/${local.env}/env"
-    github_repo           = var.github_repo
-    aws_region            = var.aws_region
-    fqdn                  = local.fqdn
-    restrict_to_uk        = var.restrict_to_uk
-    allowed_countries     = join(" ", var.allowed_countries)
-    maxmind_ssm_parameter = var.maxmind_ssm_parameter
+    environment                  = local.env
+    ssm_env_parameter            = "${var.ssm_env_parameter}/${local.env}/env"
+    github_repo                  = var.github_repo
+    aws_region                   = var.aws_region
+    fqdn                         = local.fqdn
+    restrict_to_uk               = var.restrict_to_uk
+    allowed_countries            = join(" ", var.allowed_countries)
+    maxmind_ssm_parameter        = var.maxmind_ssm_parameter
+    tailscale_auth_key_parameter = var.tailscale_auth_key_parameter
   })
 
   tags = { Name = local.name }

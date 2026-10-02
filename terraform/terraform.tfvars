@@ -9,7 +9,11 @@ alert_email     = "cuh.bioinformatics.group@nhs.net"
 # alert_slack_email is intentionally omitted from VCS — pass it at apply time:
 #   terraform apply -var="alert_slack_email=<slack-channel-email>"
 # See variables.tf: defaults to "" (subscription skipped) if not supplied.
-ssh_cidr_blocks = ["145.40.188.80/32"]
+# SSH is restricted to the Tailscale CGNAT range (100.64.0.0/10) at the
+# security group level. Store a reusable pre-approved auth key in SSM:
+#   aws ssm put-parameter --name /genie/tailscale/auth_key \
+#     --value tskey-auth-xxxxx --type SecureString --region eu-west-2
+# The key must be rotated before expiry (max 90 days on free plan).
 
 # UK geo-restriction (Nginx GeoIP2). Requires the MaxMind GeoLite2 licence key
 # to be stored in SSM at maxmind_ssm_parameter (default /genie/maxmind/license_key).
