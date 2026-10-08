@@ -6,6 +6,66 @@
     <div class="row mt-3 p-4 mx-auto bg-white shadow card-1000">
       <h1>Release Notes</h1>
 
+      <h2>1.1.2 - October 2026</h2>
+      <p><h3>Summary</h3>
+      This updates the website from GENIE 19.0-public data to 20.0-public data.</p>
+
+      <p><h3>What&#39;s new</h3></p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Change</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Data</td>
+            <td>Update to GENIE v20 dataset</td>
+            <td>
+              This release has updated to use
+              <a href="https://www.synapse.org/Synapse:syn76285058">Cohort v20.0-public</a> of the AACR Project GENIE dataset which contains 289,869 samples and 242,866 patients.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="alert alert-primary" role="note">
+        <h5>Changes between v19 and v20</h5>
+        <p>
+          <b>Please note:</b> we have identified the following changes in the GENIE v20 dataset which affects counts for some variants:
+        </p>
+
+        <h6 class="mt-3"><b>Samples removed</b></h6>
+        <p class="mb-1">2,815 samples present in v19 are no longer present in v20:</p>
+        <ul class="ps-4">
+          <li>Vanderbilt-Ingram Cancer Center (VICC) 1,447; Dana-Farber Cancer Institute (DFCI) 974; Memorial Sloan Kettering Cancer Center (MSK) 394</li>
+        </ul>
+
+        <h6 class="mt-3"><b>Variant calls removed from individual samples</b></h6>
+        <p class="mb-1">452,920 variant calls present in v19 are no longer present in v20.</p>
+        <ul class="ps-4">
+          <li>24,840 are calls from samples that are no longer present at all in v20, as described above.</li>
+          <li>Of the remaining 428,080 variant calls removed, the majority (419,776, 98.1%) were submitted by the University of Miami (UMIAMI). The majority of the UMIAMI calls removed had a low variant allele frequency (VAF) (&lt;5%) and/or low depth (&lt;20).
+          </li>
+        </ul>
+        <p>As a result, the number of unique variants within the raw data has lowered from 1,272,283 in v19 to 1,185,002 in v20.</p>
+
+        <h6 class="mt-3"><b>Impact on patient counts</b></h6>
+        <p class="mb-1">
+          From analysis of the changes in variant calls, we estimate the following impact on patient counts according to the SVIG-UK guidelines for O4 thresholds, if considering all cancers together (i.e. not stratified by cancer type):
+        </p>
+        <ul class="ps-4">
+          <li>22,557 unique variants moved down a threshold</li>
+          <li>16,672 unique variants moved up a threshold</li>
+        </ul>
+        <p class="mb-0">
+          Note that counts for frameshift (truncating) and nonsense variants, and inframe deletion variants also include patients with other variants in the same gene,
+          so adding or removing even a small number of variant calls can affect the counts of many variants in that gene.
+        </p>
+      </div>
+
       <h2>1.1.1 - July 2026</h2>
       <p><h3>Summary</h3>
       This update includes a small bug fix.</p>
