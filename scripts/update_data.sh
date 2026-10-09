@@ -61,17 +61,20 @@ ssh "${SSH_USER}@${HOST}" bash <<EOF
   sed -i "s|^GENIE_CANCER_TYPES_CSV=.*|GENIE_CANCER_TYPES_CSV=${CSV_FILENAME}|" .env
   sed -i "s|^GENIE_VERSION=.*|GENIE_VERSION=${VERSION}|" .env
 
+  # The script itself arrives on stdin, so every \`docker compose run\` below
+  # reads from /dev/null; otherwise it swallows the rest of this script and
+  # the import and restart steps silently never run
   echo "Stopping application (downtime starts)..."
   docker compose stop
 
   echo "Running migrations..."
-  docker compose run --rm web python manage.py migrate --noinput
+  docker compose run --rm -T web python manage.py migrate --noinput < /dev/null
 
   echo "Running database import..."
-  docker compose run --rm web python db_importer.py
+  docker compose run --rm -T web python db_importer.py < /dev/null
 
   echo "Verifying row counts..."
-  docker compose run --rm web python manage.py shell -c "
+  docker compose run --rm -T web python manage.py shell -c "
 from main.models import Variant, CancerType
 v = Variant.objects.count()
 c = CancerType.objects.count()
@@ -79,7 +82,7 @@ assert v > 0, 'ERROR: No variants imported'
 assert c > 0, 'ERROR: No cancer types imported'
 print('Variants:', v)
 print('CancerTypes:', c)
-"
+" < /dev/null
 
   echo "Starting application..."
   docker compose up -d
@@ -88,6 +91,20 @@ print('CancerTypes:', c)
 EOF
 
 if [ -n "${TEST_URL}" ]; then
+    # docker compose up -d returns before gunicorn is serving, so wait for
+    # the site to respond before testing (nginx returns 502 until then)
+    echo "Waiting for ${TEST_URL} to come back up..."
+    for _ in $(seq 1 24); do
+        status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${TEST_URL}" || true)
+        [[ "$status" == "200" ]] && break
+        sleep 5
+    done
+    if [[ "$status" != "200" ]]; then
+        echo "ERROR: ${TEST_URL} did not return 200 within 2 minutes (last status: ${status})"
+        echo "Check the container on the host: docker compose ps -a && docker compose logs web"
+        exit 1
+    fi
+
     echo "Running acceptance tests against ${TEST_URL}..."
     python3 "$(dirname "$0")/acceptance_test.py" \
         --uat-url "${TEST_URL}" \
