@@ -95,7 +95,7 @@ printf 'Authorization: Bearer %s\n' "$ACCESS_TOKEN" > "$_TS_AUTH_HDR"
 unset ACCESS_TOKEN
 
 AUTH_KEY=$(curl -fsSL -X POST https://api.tailscale.com/api/v2/tailnet/-/keys \
-  -H "@${_TS_AUTH_HDR}" \
+  -H "@$${_TS_AUTH_HDR}" \
   -H "Content-Type: application/json" \
   -d '{"capabilities":{"devices":{"create":{"tags":["tag:server"],"reusable":false,"ephemeral":false,"preauthorized":true}}},"expirySeconds":300}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")

@@ -11,6 +11,11 @@ The project is built with **Django 5.2** and **SQLite**, supports deployment
 both via **Docker** with **Nginx** web server and without (via **WhiteNoise**),
 and is distributed under the **MIT License**.
 
+**Deploying to AWS or joining the team?** See
+[docs/team-onboarding.md](docs/team-onboarding.md) to get set up, and
+[docs/deployment-and-testing.md](docs/deployment-and-testing.md) for the full
+infrastructure and deployment reference.
+
 
 ## Acknowledgement
 
